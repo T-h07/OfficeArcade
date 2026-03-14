@@ -10,6 +10,7 @@ import com.officearcade.server.admin.users.dto.UpdateAdminUserRequest;
 import com.officearcade.server.auth.dto.LoginRequest;
 import com.officearcade.server.auth.dto.LoginResponse;
 import com.officearcade.server.identity.AppRole;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,8 +47,9 @@ class AdminUserManagementControllerTest {
         assertThat(initialListResponse.getBody()).isNotNull();
         assertThat(initialListResponse.getBody().users()).isNotEmpty();
 
+        String managedEmail = "qa.employee+" + UUID.randomUUID() + "@officearcade.local";
         CreateAdminUserRequest createRequest = new CreateAdminUserRequest(
-                "qa.employee@officearcade.local",
+                managedEmail,
                 "QA Employee",
                 "Employee@456",
                 AppRole.EMPLOYEE,
@@ -63,7 +65,7 @@ class AdminUserManagementControllerTest {
 
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(createResponse.getBody()).isNotNull();
-        assertThat(createResponse.getBody().email()).isEqualTo("qa.employee@officearcade.local");
+        assertThat(createResponse.getBody().email()).isEqualTo(managedEmail);
         assertThat(createResponse.getBody().role()).isEqualTo("EMPLOYEE");
 
         String createdUserId = createResponse.getBody().id();
@@ -79,7 +81,7 @@ class AdminUserManagementControllerTest {
         assertThat(detailsResponse.getBody().displayName()).isEqualTo("QA Employee");
 
         UpdateAdminUserRequest updateRequest = new UpdateAdminUserRequest(
-                "qa.employee@officearcade.local",
+                managedEmail,
                 "QA Employee Updated",
                 AppRole.EMPLOYEE
         );
@@ -103,7 +105,7 @@ class AdminUserManagementControllerTest {
 
         ResponseEntity<LoginResponse> newPasswordLoginResponse = restTemplate.postForEntity(
                 baseUrl("/api/auth/login"),
-                new LoginRequest("qa.employee@officearcade.local", "Updated@456"),
+                new LoginRequest(managedEmail, "Updated@456"),
                 LoginResponse.class
         );
         assertThat(newPasswordLoginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -165,7 +167,7 @@ class AdminUserManagementControllerTest {
     void shouldBlockDeactivationOfLastActiveAdmin() {
         String adminToken = loginAndGetToken("admin@officearcade.local", "Admin@123");
         ResponseEntity<String> response = restTemplate.exchange(
-                baseUrl("/api/admin/users/user-admin-001/deactivate"),
+                baseUrl("/api/admin/users/00000000-0000-0000-0000-000000000001/deactivate"),
                 HttpMethod.POST,
                 new HttpEntity<>(authHeaders(adminToken)),
                 String.class

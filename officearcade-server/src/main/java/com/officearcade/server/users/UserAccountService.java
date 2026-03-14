@@ -1,173 +1,140 @@
 package com.officearcade.server.users;
 
 import com.officearcade.server.identity.AppRole;
-import com.officearcade.server.identity.SeededUserProperties;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
+import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
+import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
+import com.officearcade.server.users.persistence.UserEntity;
+import com.officearcade.server.users.persistence.UserEntityRepository;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserAccountService {
 
     private final PasswordEncoder passwordEncoder;
-    private final Map<String, UserAccount> usersById;
-    private final Map<String, String> userIdByNormalizedEmail;
+    private final UserEntityRepository userEntityRepository;
+    private final PlayerProfileEntityRepository playerProfileEntityRepository;
 
-    public UserAccountService(SeededUserProperties seededUserProperties, PasswordEncoder passwordEncoder) {
+    public UserAccountService(
+            PasswordEncoder passwordEncoder,
+            UserEntityRepository userEntityRepository,
+            PlayerProfileEntityRepository playerProfileEntityRepository
+    ) {
         this.passwordEncoder = passwordEncoder;
-        this.usersById = new LinkedHashMap<>();
-        this.userIdByNormalizedEmail = new LinkedHashMap<>();
-
-        Instant seededAt = Instant.now();
-        for (SeededUserProperties.SeededUser seededUser : seededUserProperties.seededUsers()) {
-            String normalizedEmail = normalizeEmail(seededUser.email());
-            if (userIdByNormalizedEmail.containsKey(normalizedEmail)) {
-                throw new IllegalStateException("Duplicate seeded user email: " + normalizedEmail);
-            }
-            if (usersById.containsKey(seededUser.id())) {
-                throw new IllegalStateException("Duplicate seeded user id: " + seededUser.id());
-            }
-
-            UserAccount account = new UserAccount(
-                    seededUser.id(),
-                    normalizedEmail,
-                    seededUser.displayName().trim(),
-                    seededUser.passwordHash(),
-                    seededUser.role(),
-                    seededUser.enabled(),
-                    seededAt,
-                    seededAt
-            );
-            usersById.put(account.id(), account);
-            userIdByNormalizedEmail.put(normalizedEmail, account.id());
-        }
+        this.userEntityRepository = userEntityRepository;
+        this.playerProfileEntityRepository = playerProfileEntityRepository;
     }
 
-    public synchronized Optional<UserAccount> findById(String id) {
-        return Optional.ofNullable(usersById.get(id));
-    }
-
-    public synchronized Optional<UserAccount> findByEmail(String email) {
-        String normalizedEmail = normalizeEmail(email);
-        String id = userIdByNormalizedEmail.get(normalizedEmail);
-        if (id == null) {
+    @Transactional(readOnly = true)
+    public Optional<UserAccount> findById(String id) {
+        Optional<UUID> userId = tryParseUserId(id);
+        if (userId.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(usersById.get(id));
+        return userEntityRepository.findById(userId.get()).map(this::toAccount);
     }
 
-    public synchronized List<UserAccount> findUsers(UserQuery query) {
-        String normalizedSearch = normalizeSearch(query.search());
-        List<UserAccount> users = new ArrayList<>(usersById.values());
+    @Transactional(readOnly = true)
+    public Optional<UserAccount> findByEmail(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        return userEntityRepository.findByEmail(normalizedEmail).map(this::toAccount);
+    }
 
-        return users.stream()
-                .filter((user) -> matchesSearch(user, normalizedSearch))
-                .filter((user) -> query.role() == null || user.role() == query.role())
-                .filter((user) -> query.enabled() == null || user.enabled() == query.enabled())
-                .sorted(Comparator.comparing(UserAccount::createdAt).thenComparing(UserAccount::email))
+    @Transactional(readOnly = true)
+    public List<UserAccount> findUsers(UserQuery query) {
+        String normalizedSearch = normalizeSearch(query.search());
+
+        Specification<UserEntity> specification = Specification.where(null);
+        if (normalizedSearch != null) {
+            String likePattern = "%" + normalizedSearch + "%";
+            specification = specification.and((root, querySpec, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(root.get("email"), likePattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("displayName")), likePattern)
+            ));
+        }
+        if (query.role() != null) {
+            specification = specification.and((root, querySpec, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("role"), query.role()));
+        }
+        if (query.enabled() != null) {
+            specification = specification.and((root, querySpec, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("enabled"), query.enabled()));
+        }
+
+        Sort sort = Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("email"));
+        return userEntityRepository.findAll(specification, sort).stream()
+                .map(this::toAccount)
                 .toList();
     }
 
-    public synchronized UserAccount create(CreateUserCommand command) {
+    @Transactional
+    public UserAccount create(CreateUserCommand command) {
         String normalizedEmail = normalizeEmail(command.email());
-        if (userIdByNormalizedEmail.containsKey(normalizedEmail)) {
+        if (userEntityRepository.findByEmail(normalizedEmail).isPresent()) {
             throw duplicateEmail(normalizedEmail);
         }
 
-        Instant now = Instant.now();
-        String id = "user-" + UUID.randomUUID();
-        UserAccount user = new UserAccount(
-                id,
-                normalizedEmail,
-                normalizeDisplayName(command.displayName()),
-                passwordEncoder.encode(command.rawPassword()),
-                command.role(),
-                command.enabled(),
-                now,
-                now
-        );
+        UserEntity userEntity = new UserEntity();
+        userEntity.setEmail(normalizedEmail);
+        userEntity.setDisplayName(normalizeDisplayName(command.displayName()));
+        userEntity.setPasswordHash(passwordEncoder.encode(command.rawPassword()));
+        userEntity.setRole(command.role());
+        userEntity.setEnabled(command.enabled());
 
-        usersById.put(id, user);
-        userIdByNormalizedEmail.put(normalizedEmail, id);
-        return user;
+        UserEntity saved = userEntityRepository.save(userEntity);
+        ensurePlayerProfile(saved);
+        return toAccount(saved);
     }
 
-    public synchronized UserAccount update(UpdateUserCommand command) {
+    @Transactional
+    public UserAccount update(UpdateUserCommand command) {
         UserAccount existing = getRequiredUser(command.id());
         String nextEmail = normalizeEmail(command.email());
         String currentEmail = existing.email();
 
         if (!currentEmail.equals(nextEmail)) {
-            String existingIdForEmail = userIdByNormalizedEmail.get(nextEmail);
-            if (existingIdForEmail != null && !existingIdForEmail.equals(existing.id())) {
+            Optional<UserAccount> existingForEmail = findByEmail(nextEmail);
+            if (existingForEmail.isPresent() && !existingForEmail.get().id().equals(existing.id())) {
                 throw duplicateEmail(nextEmail);
             }
         }
 
         assertNotRemovingLastActiveAdmin(existing, command.role(), existing.enabled());
 
-        UserAccount updated = new UserAccount(
-                existing.id(),
-                nextEmail,
-                normalizeDisplayName(command.displayName()),
-                existing.passwordHash(),
-                command.role(),
-                existing.enabled(),
-                existing.createdAt(),
-                Instant.now()
-        );
-
-        usersById.put(updated.id(), updated);
-        if (!currentEmail.equals(nextEmail)) {
-            userIdByNormalizedEmail.remove(currentEmail);
-            userIdByNormalizedEmail.put(nextEmail, updated.id());
-        }
-
-        return updated;
+        UserEntity userEntity = getRequiredUserEntity(existing.id());
+        userEntity.setEmail(nextEmail);
+        userEntity.setDisplayName(normalizeDisplayName(command.displayName()));
+        userEntity.setRole(command.role());
+        UserEntity saved = userEntityRepository.save(userEntity);
+        return toAccount(saved);
     }
 
-    public synchronized UserAccount setEnabled(String id, boolean enabled) {
+    @Transactional
+    public UserAccount setEnabled(String id, boolean enabled) {
         UserAccount existing = getRequiredUser(id);
         assertNotRemovingLastActiveAdmin(existing, existing.role(), enabled);
 
-        UserAccount updated = new UserAccount(
-                existing.id(),
-                existing.email(),
-                existing.displayName(),
-                existing.passwordHash(),
-                existing.role(),
-                enabled,
-                existing.createdAt(),
-                Instant.now()
-        );
-        usersById.put(updated.id(), updated);
-        return updated;
+        UserEntity userEntity = getRequiredUserEntity(existing.id());
+        userEntity.setEnabled(enabled);
+        UserEntity saved = userEntityRepository.save(userEntity);
+        return toAccount(saved);
     }
 
-    public synchronized UserAccount resetPassword(String id, String rawPassword) {
-        UserAccount existing = getRequiredUser(id);
-        UserAccount updated = new UserAccount(
-                existing.id(),
-                existing.email(),
-                existing.displayName(),
-                passwordEncoder.encode(rawPassword),
-                existing.role(),
-                existing.enabled(),
-                existing.createdAt(),
-                Instant.now()
-        );
-        usersById.put(updated.id(), updated);
-        return updated;
+    @Transactional
+    public UserAccount resetPassword(String id, String rawPassword) {
+        UserEntity userEntity = getRequiredUserEntity(id);
+        userEntity.setPasswordHash(passwordEncoder.encode(rawPassword));
+        UserEntity saved = userEntityRepository.save(userEntity);
+        return toAccount(saved);
     }
 
     public boolean passwordMatches(UserAccount user, String rawPassword) {
@@ -175,11 +142,13 @@ public class UserAccountService {
     }
 
     private UserAccount getRequiredUser(String id) {
-        UserAccount user = usersById.get(id);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + id);
-        }
-        return user;
+        return findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + id));
+    }
+
+    private UserEntity getRequiredUserEntity(String id) {
+        UUID userId = parseRequiredUserId(id);
+        return userEntityRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + id));
     }
 
     private void assertNotRemovingLastActiveAdmin(UserAccount current, AppRole nextRole, boolean nextEnabled) {
@@ -190,9 +159,7 @@ public class UserAccountService {
             return;
         }
 
-        long activeAdminCount = usersById.values().stream()
-                .filter((user) -> user.role() == AppRole.ADMIN && user.enabled())
-                .count();
+        long activeAdminCount = userEntityRepository.countByRoleAndEnabledTrue(AppRole.ADMIN);
 
         if (activeAdminCount <= 1) {
             throw new ResponseStatusException(
@@ -202,6 +169,36 @@ public class UserAccountService {
         }
     }
 
+    private void ensurePlayerProfile(UserEntity userEntity) {
+        if (playerProfileEntityRepository.existsByUserId(userEntity.getId())) {
+            return;
+        }
+
+        PlayerProfileEntity playerProfileEntity = new PlayerProfileEntity();
+        playerProfileEntity.setUser(userEntity);
+        playerProfileEntity.setLevel(1);
+        playerProfileEntity.setXp(0);
+        playerProfileEntity.setRespectPoints(0);
+        playerProfileEntity.setKarmaPoints(0);
+        playerProfileEntity.setGamesPlayed(0);
+        playerProfileEntity.setWins(0);
+        playerProfileEntity.setLosses(0);
+        playerProfileEntityRepository.save(playerProfileEntity);
+    }
+
+    private UserAccount toAccount(UserEntity userEntity) {
+        return new UserAccount(
+                userEntity.getId().toString(),
+                userEntity.getEmail(),
+                userEntity.getDisplayName(),
+                userEntity.getPasswordHash(),
+                userEntity.getRole(),
+                userEntity.isEnabled(),
+                userEntity.getCreatedAt(),
+                userEntity.getUpdatedAt()
+        );
+    }
+
     private static ResponseStatusException duplicateEmail(String normalizedEmail) {
         return new ResponseStatusException(
                 HttpStatus.CONFLICT,
@@ -209,26 +206,42 @@ public class UserAccountService {
         );
     }
 
-    private static boolean matchesSearch(UserAccount user, String normalizedSearch) {
-        if (normalizedSearch == null) {
-            return true;
+    private static UUID parseRequiredUserId(String id) {
+        Optional<UUID> parsed = tryParseUserId(id);
+        if (parsed.isPresent()) {
+            return parsed.get();
         }
-        return user.email().contains(normalizedSearch)
-                || user.displayName().toLowerCase(Locale.ROOT).contains(normalizedSearch);
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User id must be a valid UUID.");
+    }
+
+    private static Optional<UUID> tryParseUserId(String id) {
+        try {
+            return Optional.of(UUID.fromString(id));
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            return Optional.empty();
+        }
     }
 
     private static String normalizeEmail(String email) {
         if (email == null) {
-            return "";
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required.");
         }
-        return email.toLowerCase(Locale.ROOT).trim();
+        String normalized = email.toLowerCase(Locale.ROOT).trim();
+        if (normalized.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required.");
+        }
+        return normalized;
     }
 
     private static String normalizeDisplayName(String displayName) {
         if (displayName == null) {
-            return "";
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Display name is required.");
         }
-        return displayName.trim();
+        String normalized = displayName.trim();
+        if (normalized.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Display name is required.");
+        }
+        return normalized;
     }
 
     private static String normalizeSearch(String search) {

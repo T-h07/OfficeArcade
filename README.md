@@ -6,144 +6,183 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 
 - Desktop shell: Tauri
 - Frontend: React + TypeScript + Vite + Tailwind CSS
-- Visual/game layer placeholder: PixiJS dependency included (no gameplay implementation yet)
+- Visual/game layer placeholder: PixiJS dependency included
 - Backend: Spring Boot (Java 21)
-- Persistence (later): PostgreSQL
+- Persistence: PostgreSQL (Docker) + Flyway + Spring Data JPA
 - Realtime (later): WebSocket
 
 ## Monorepo Structure
 
-- `docs/` - concept, architecture, roadmap, and API placeholders
-- `officearcade-client/` - Tauri + React + TypeScript desktop client app
-- `officearcade-server/` - Spring Boot backend with auth/security and admin-user management APIs
-- `officearcade-shared/` - shared contracts/types/docs placeholders for future PTs
+- `docs/` - concept, architecture, roadmap, and API notes
+- `officearcade-client/` - Tauri + React + TypeScript desktop client
+- `officearcade-server/` - Spring Boot backend
+- `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT03 Implemented Scope
+## OA-PT04 Implemented Scope
 
-- Spring Security + JWT auth (`ADMIN`, `EMPLOYEE`) with protected route guards
-- Shared in-memory user account service used by:
-  - authentication
-  - admin user management
-- Public/system endpoints:
-  - `GET /api/health`
-- Auth endpoints:
-  - `POST /api/auth/login`
-  - `GET /api/auth/me`
-- Admin-only user management endpoints:
-  - `GET /api/admin/users` (supports `search`, `role`, `active`)
-  - `GET /api/admin/users/{id}`
-  - `POST /api/admin/users`
-  - `PUT /api/admin/users/{id}`
-  - `POST /api/admin/users/{id}/activate`
-  - `POST /api/admin/users/{id}/deactivate`
-  - `POST /api/admin/users/{id}/reset-password`
-- Client auth and shell:
-  - login page
-  - token persistence across reloads
-  - startup session restore with `/api/auth/me`
-  - logout flow
-  - protected routing + role guards
-- Admin user module UI:
-  - admin-only navigation item
-  - user list with search/filter
-  - create user flow
-  - user detail/edit panel
-  - activate/deactivate actions
-  - reset password action
+- Dockerized local PostgreSQL environment (`docker-compose.yml`)
+- Flyway migrations on backend startup
+- Core persisted schema foundation:
+  - `users`
+  - `player_profiles`
+  - `game_types`
+- Seeded development data through Flyway:
+  - admin + employee users
+  - matching player profiles
+  - base game type catalog (`CONNECT_FOUR`, `UNO`, `TRIVIA`)
+- Auth and admin-user-management now use one persisted database source
+- OA-PT02 and OA-PT03 flows preserved:
+  - JWT login + `/api/auth/me`
+  - role guards (`ADMIN`, `EMPLOYEE`)
+  - admin users list/search/create/update/activate/deactivate/reset-password
+  - last-active-admin safety protection
 
-## Admin User Safety Rules
+## Core Schema Overview
 
-- Employee users do not see admin user navigation and cannot access admin user routes/APIs.
-- Backend blocks unsafe operations that would remove the last active `ADMIN` account.
+### `users`
 
-## Auth Flow Summary
+- `id` (UUID, PK)
+- `email` (unique)
+- `display_name`
+- `password_hash`
+- `role` (`ADMIN` or `EMPLOYEE`)
+- `enabled`
+- `created_at`
+- `updated_at`
 
-1. User submits credentials to `POST /api/auth/login`.
-2. Backend validates against the shared in-memory user source and returns JWT access token + user payload.
-3. Client stores token locally and loads the protected app shell.
-4. On app boot, client calls `GET /api/auth/me` with token to restore session.
-5. Missing/invalid token returns user to login.
+### `player_profiles`
+
+- `user_id` (UUID, PK/FK to `users`)
+- `level`
+- `xp`
+- `respect_points`
+- `karma_points`
+- `games_played`
+- `wins`
+- `losses`
+- `created_at`
+- `updated_at`
+
+### `game_types`
+
+- `id` (UUID, PK)
+- `code` (unique)
+- `display_name`
+- `enabled`
+- `created_at`
+- `updated_at`
 
 ## Seeded Dev Credentials
-
-Development users available at server startup:
 
 - `admin@officearcade.local` / `Admin@123` (role: `ADMIN`)
 - `employee@officearcade.local` / `Employee@123` (role: `EMPLOYEE`)
 
-Testing notes:
+Passwords are stored hashed in the database. Seed data is migration-driven.
 
-- Accounts created from the admin module can authenticate immediately.
-- Admin password resets immediately affect future login attempts.
-- Deactivated users are blocked by auth checks.
-- User data is currently in-memory and resets when the backend restarts.
+## Docker Database Commands
 
-## Intentionally Not Implemented Yet
+### Start PostgreSQL
 
-- PostgreSQL/Flyway persistence
-- Department management and broader admin policy modules
-- Room lifecycle or gameplay logic
-- Respect/Karma systems
-- Store/inventory systems
-- Leaderboards
-- WebSocket realtime gameplay infrastructure
-- Signup/recovery/refresh-token production auth flows
+```bash
+docker compose up -d officearcade-postgres
+```
+
+### View Container Status
+
+```bash
+docker compose ps
+```
+
+### Stop PostgreSQL (keep data volume)
+
+```bash
+docker compose stop officearcade-postgres
+```
+
+### Stop and remove container/network (keep volume)
+
+```bash
+docker compose down
+```
+
+### Full reset (remove DB volume/data)
+
+```bash
+docker compose down -v
+```
 
 ## Run Locally
 
-### 1) Start the Server
-
-```bash
-cd officearcade-server
-./mvnw spring-boot:run
-```
-
-Windows PowerShell:
+### 1) Start Database
 
 ```powershell
-cd officearcade-server
+cd C:\Users\taulanth\Desktop\OfficeArcade
+docker compose up -d officearcade-postgres
+```
+
+PostgreSQL is exposed at `localhost:55432` with:
+
+- database: `officearcade`
+- username: `officearcade`
+- password: `officearcade`
+
+### 2) Start Backend
+
+```powershell
+cd C:\Users\taulanth\Desktop\OfficeArcade\officearcade-server
 .\mvnw.cmd spring-boot:run
 ```
 
-Server runs on `http://localhost:18180` by default.
+Backend runs on `http://localhost:18180` by default.
 
-Optional server port override:
+Optional backend port override:
 
 ```powershell
 $env:OFFICEARCADE_SERVER_PORT="19180"
 .\mvnw.cmd spring-boot:run
 ```
 
-### 2) Start the Client (Web Dev Mode)
+### 3) Start Client (Web Dev Mode)
 
-```bash
-cd officearcade-client
+```powershell
+cd C:\Users\taulanth\Desktop\OfficeArcade\officearcade-client
 npm install
 npm run dev
 ```
 
 Client runs on `http://localhost:5173`.
 
-### 3) Start the Client (Tauri Desktop Mode)
+### 4) Start Client (Tauri Desktop Mode)
 
-```bash
-cd officearcade-client
+```powershell
+cd C:\Users\taulanth\Desktop\OfficeArcade\officearcade-client
 npm install
 npm run tauri:dev
 ```
 
-Optional API base override:
-
-```bash
-VITE_API_BASE_URL=http://localhost:18180
-```
-
-Windows PowerShell:
+Optional API base override for client:
 
 ```powershell
 $env:VITE_API_BASE_URL="http://localhost:18180"
 ```
+
+## Notes
+
+- Flyway runs automatically on backend startup.
+- Admin user management changes are persisted and survive backend restart.
+- Deactivated users cannot authenticate.
+- Password reset changes apply immediately and persist.
+
+## Intentionally Not Implemented Yet
+
+- Game room lifecycle and multiplayer/gameplay logic
+- Cooldown policy enforcement
+- Respect/Karma business workflows
+- Store/inventory ownership flows
+- Leaderboard logic
+- WebSocket gameplay/realtime infrastructure
+- Department/tag UI and related business modules
 
 ## Branch Strategy
 
@@ -155,4 +194,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT04` will focus on core domain/schema and the next backend foundation layer beyond the temporary in-memory user model.
+`OA-PT05` will build employee-facing dashboard/domain functionality on top of the persisted schema foundation created in OA-PT04.

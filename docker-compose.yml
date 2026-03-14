@@ -1,0 +1,21 @@
+services:
+  officearcade-postgres:
+    image: postgres:16-alpine
+    container_name: officearcade-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: officearcade
+      POSTGRES_USER: officearcade
+      POSTGRES_PASSWORD: officearcade
+    ports:
+      - "55432:5432"
+    volumes:
+      - officearcade-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U officearcade -d officearcade"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  officearcade-postgres-data:
