@@ -15,6 +15,8 @@ import com.officearcade.server.lobby.persistence.RoomEntity;
 import com.officearcade.server.lobby.persistence.RoomEntityRepository;
 import com.officearcade.server.lobby.persistence.RoomMemberEntity;
 import com.officearcade.server.lobby.persistence.RoomMemberEntityRepository;
+import com.officearcade.server.lobby.realtime.LobbyRealtimeEventType;
+import com.officearcade.server.lobby.realtime.LobbyRealtimePublisher;
 import com.officearcade.server.users.persistence.UserEntity;
 import com.officearcade.server.users.persistence.UserEntityRepository;
 import java.util.HashMap;
@@ -39,19 +41,22 @@ public class LobbyService {
     private final GameTypeEntityRepository gameTypeEntityRepository;
     private final UserEntityRepository userEntityRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LobbyRealtimePublisher lobbyRealtimePublisher;
 
     public LobbyService(
             RoomEntityRepository roomEntityRepository,
             RoomMemberEntityRepository roomMemberEntityRepository,
             GameTypeEntityRepository gameTypeEntityRepository,
             UserEntityRepository userEntityRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            LobbyRealtimePublisher lobbyRealtimePublisher
     ) {
         this.roomEntityRepository = roomEntityRepository;
         this.roomMemberEntityRepository = roomMemberEntityRepository;
         this.gameTypeEntityRepository = gameTypeEntityRepository;
         this.userEntityRepository = userEntityRepository;
         this.passwordEncoder = passwordEncoder;
+        this.lobbyRealtimePublisher = lobbyRealtimePublisher;
     }
 
     @Transactional(readOnly = true)
@@ -150,6 +155,12 @@ public class LobbyService {
         hostMembership.setMemberRole(RoomMemberRole.HOST);
         roomMemberEntityRepository.save(hostMembership);
 
+        lobbyRealtimePublisher.publishLobbyAndRoom(
+                LobbyRealtimeEventType.ROOM_CREATED,
+                savedRoom.getId(),
+                currentUserId
+        );
+
         return getRoomDetails(savedRoom.getId().toString());
     }
 
@@ -178,6 +189,11 @@ public class LobbyService {
         roomMemberEntityRepository.save(membership);
 
         updateRoomStatus(room, currentMembers + 1);
+        lobbyRealtimePublisher.publishLobbyAndRoom(
+                LobbyRealtimeEventType.ROOM_JOINED,
+                room.getId(),
+                currentUserId
+        );
         return getRoomDetails(roomId);
     }
 
@@ -197,6 +213,11 @@ public class LobbyService {
             roomMemberEntityRepository.deleteAllByRoom_Id(roomUuid);
             room.setStatus(RoomStatus.CLOSED);
             RoomEntity saved = roomEntityRepository.save(room);
+            lobbyRealtimePublisher.publishLobbyAndRoom(
+                    LobbyRealtimeEventType.ROOM_CLOSED,
+                    roomUuid,
+                    currentUserId
+            );
             LobbyRoomDetailResponse closedRoom = toDetail(saved, List.of());
             return new LobbyRoomActionResponse(
                     "OK",
@@ -208,6 +229,11 @@ public class LobbyService {
         roomMemberEntityRepository.deleteByRoom_IdAndUser_Id(roomUuid, userId);
         long remainingMembers = roomMemberEntityRepository.countByRoom_Id(roomUuid);
         updateRoomStatus(room, remainingMembers);
+        lobbyRealtimePublisher.publishLobbyAndRoom(
+                LobbyRealtimeEventType.ROOM_LEFT,
+                roomUuid,
+                currentUserId
+        );
 
         return new LobbyRoomActionResponse(
                 "OK",
@@ -229,6 +255,11 @@ public class LobbyService {
         roomMemberEntityRepository.deleteAllByRoom_Id(roomUuid);
         room.setStatus(RoomStatus.CLOSED);
         RoomEntity saved = roomEntityRepository.save(room);
+        lobbyRealtimePublisher.publishLobbyAndRoom(
+                LobbyRealtimeEventType.ROOM_CLOSED,
+                roomUuid,
+                currentUserId
+        );
 
         LobbyRoomDetailResponse closedRoom = toDetail(saved, List.of());
         return new LobbyRoomActionResponse("OK", "Room closed.", closedRoom);

@@ -21,6 +21,7 @@ export function LobbyPage() {
     myRoom,
     isLoading,
     isMutating,
+    realtimeStatus,
     errorMessage,
     actionMessage,
     refresh,
@@ -34,6 +35,13 @@ export function LobbyPage() {
   if (!user) {
     return null;
   }
+
+  const realtimeBadgeClass =
+    realtimeStatus === "connected"
+      ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+      : realtimeStatus === "connecting"
+        ? "border-amber-300/45 bg-amber-300/15 text-amber-100"
+        : "border-oa-border bg-black/25 text-oa-muted";
 
   async function handleJoinPublic(roomId: string) {
     await joinRoom(roomId, {});
@@ -51,9 +59,14 @@ export function LobbyPage() {
     <section className="space-y-5">
       <header className="rounded-2xl border border-oa-border bg-oa-surface/85 p-5">
         <p className="text-xs uppercase tracking-[0.18em] text-oa-muted">Multiplayer Foundation</p>
-        <h1 className="mt-2 text-2xl font-semibold text-oa-text">Play Lobby</h1>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-semibold text-oa-text">Play Lobby</h1>
+          <span className={`rounded-full border px-2.5 py-1 text-xs ${realtimeBadgeClass}`}>
+            Realtime: {realtimeStatus === "connected" ? "Live" : realtimeStatus}
+          </span>
+        </div>
         <p className="mt-2 text-sm text-oa-muted">
-          Create and join persisted room sessions. Realtime orchestration arrives in OA-PT07.
+          Create and join persisted room sessions with live lobby and room sync across clients.
         </p>
       </header>
 

@@ -9,10 +9,13 @@ import {
   LobbyApiError,
   getMyLobbyRoom
 } from "../api/lobbyApi";
+import { useLobbyRealtime } from "../realtime/useLobbyRealtime";
 import type {
   CreateLobbyRoomRequest,
   JoinLobbyRoomRequest,
   LobbyGameType,
+  LobbyRealtimeConnectionStatus,
+  LobbyRealtimeEvent,
   LobbyRoomDetail,
   LobbyRoomSummary
 } from "../types/lobby.types";
@@ -30,6 +33,7 @@ type UseLobbyResult = {
   myRoom: LobbyRoomDetail | null;
   isLoading: boolean;
   isMutating: boolean;
+  realtimeStatus: LobbyRealtimeConnectionStatus;
   errorMessage: string | null;
   actionMessage: string | null;
   refresh: () => Promise<void>;
@@ -49,6 +53,39 @@ export function useLobby(accessToken: string | null, onUnauthorized: () => void)
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
+  const loadLobbyData = useCallback(
+    async (token: string, options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      if (!silent) {
+        setIsLoading(true);
+      }
+      setErrorMessage(null);
+
+      try {
+        const [roomsResponse, myRoomResponse, gameTypeResponse] = await Promise.all([
+          listLobbyRooms(token),
+          getMyLobbyRoom(token),
+          listEnabledLobbyGameTypes(token)
+        ]);
+
+        setRooms(roomsResponse.rooms);
+        setMyRoom(myRoomResponse.room);
+        setGameTypes(gameTypeResponse);
+      } catch (error) {
+        if (error instanceof LobbyApiError && error.status === 401) {
+          onUnauthorized();
+          return;
+        }
+        setErrorMessage(resolveErrorMessage(error, "Unable to load lobby data."));
+      } finally {
+        if (!silent) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [onUnauthorized]
+  );
+
   const refresh = useCallback(async () => {
     if (!accessToken) {
       setRooms([]);
@@ -60,33 +97,40 @@ export function useLobby(accessToken: string | null, onUnauthorized: () => void)
     }
 
     const token = accessToken;
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    try {
-      const [roomsResponse, myRoomResponse, gameTypeResponse] = await Promise.all([
-        listLobbyRooms(token),
-        getMyLobbyRoom(token),
-        listEnabledLobbyGameTypes(token)
-      ]);
-
-      setRooms(roomsResponse.rooms);
-      setMyRoom(myRoomResponse.room);
-      setGameTypes(gameTypeResponse);
-    } catch (error) {
-      if (error instanceof LobbyApiError && error.status === 401) {
-        onUnauthorized();
-        return;
-      }
-      setErrorMessage(resolveErrorMessage(error, "Unable to load lobby data."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [accessToken, onUnauthorized]);
+    await loadLobbyData(token, { silent: false });
+  }, [accessToken, loadLobbyData]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const handleLobbyRealtimeEvent = useCallback(
+    (_event: LobbyRealtimeEvent) => {
+      if (!accessToken) {
+        return;
+      }
+
+      void loadLobbyData(accessToken, { silent: true });
+    },
+    [accessToken, loadLobbyData]
+  );
+
+  const handleRoomRealtimeEvent = useCallback(
+    (_event: LobbyRealtimeEvent) => {
+      if (!accessToken) {
+        return;
+      }
+      void loadLobbyData(accessToken, { silent: true });
+    },
+    [accessToken, loadLobbyData]
+  );
+
+  const realtimeStatus = useLobbyRealtime({
+    accessToken,
+    roomId: myRoom?.id ?? null,
+    onLobbyEvent: handleLobbyRealtimeEvent,
+    onRoomEvent: handleRoomRealtimeEvent
+  });
 
   async function createRoomAction(request: CreateLobbyRoomRequest) {
     if (!accessToken) {
@@ -194,6 +238,7 @@ export function useLobby(accessToken: string | null, onUnauthorized: () => void)
     myRoom,
     isLoading,
     isMutating,
+    realtimeStatus,
     errorMessage,
     actionMessage,
     refresh,

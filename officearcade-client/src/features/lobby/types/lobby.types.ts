@@ -1,5 +1,7 @@
 export type RoomStatus = "OPEN" | "FULL" | "CLOSED";
 export type RoomMemberRole = "HOST" | "MEMBER";
+export type LobbyRealtimeEventType = "ROOM_CREATED" | "ROOM_JOINED" | "ROOM_LEFT" | "ROOM_CLOSED";
+export type LobbyRealtimeConnectionStatus = "offline" | "connecting" | "connected" | "degraded";
 
 export type LobbyGameType = {
   id: string;
@@ -60,4 +62,11 @@ export type CreateLobbyRoomRequest = {
 
 export type JoinLobbyRoomRequest = {
   password?: string;
+};
+
+export type LobbyRealtimeEvent = {
+  eventType: LobbyRealtimeEventType;
+  roomId: string;
+  triggeredByUserId: string;
+  occurredAt: string;
 };
