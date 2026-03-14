@@ -3,6 +3,7 @@ import { RequireAuth } from "../features/auth/RequireAuth";
 import { PublicOnlyRoute } from "../features/auth/PublicOnlyRoute";
 import { RequireRole } from "../features/auth/RequireRole";
 import { SuspendedAccessGate } from "../features/auth/SuspendedAccessGate";
+import { AdminAnalyticsPage } from "../features/admin-analytics/pages/AdminAnalyticsPage";
 import { AdminUsersPage } from "../features/admin-users/pages/AdminUsersPage";
 import { ChallengesPage } from "../features/challenges/pages/ChallengesPage";
 import { AdminDepartmentsPage } from "../features/departments/pages/AdminDepartmentsPage";
@@ -50,6 +51,14 @@ export function AppRouter() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="store" element={<StorePage />} />
         <Route path="inventory" element={<InventoryPage />} />
+        <Route
+          path="admin/analytics"
+          element={
+            <RequireRole allowedRoles={["ADMIN"]}>
+              <AdminAnalyticsPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="admin-overview"
           element={

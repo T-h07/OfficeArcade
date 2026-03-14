@@ -4,8 +4,8 @@ export function AdminOverviewPage() {
   return (
     <PagePlaceholder
       title="Admin Overview"
-      description="Admin-only route placeholder for operational controls and PT overview."
-      futureNote="OA-PT03 delivers user management. Policy controls, departments, and deeper admin modules arrive in later OA-PTs."
+      description="Admin operational shell entry point. Use Users, Departments, Moderation, and Analytics for active controls."
+      futureNote="OA-PT18 now includes company insights dashboards. Future PTs can extend exports, seasonal insight layers, and richer company reporting."
     />
   );
 }

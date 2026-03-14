@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT17 Implemented Scope
+## OA-PT18 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -187,6 +187,46 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - dedicated admin Departments page in client:
     - list, search/filter, create, edit, activate/deactivate
     - compact summary metrics including assigned-user counts
+- Added admin analytics and company insights dashboard:
+  - new admin-only analytics endpoint:
+    - `GET /api/admin/analytics/dashboard`
+  - supported query filters:
+    - `range=today|7d|30d|all`
+    - `departmentId=<department-uuid|UNASSIGNED>` (optional)
+  - analytics summary KPI model now includes:
+    - total enabled users (scope-aware)
+    - active users in selected range + active users today
+    - matches in selected range + matches today
+    - rooms created in selected range
+    - respect awarded / karma applied in selected range
+    - open moderation reports and suspended users
+    - average matches per active user
+  - participation/activity trend section:
+    - active users by day
+    - completed matches by day
+    - rooms created by day
+  - gameplay usage section:
+    - completed matches by game type
+    - percentage share by game type
+  - department insights section:
+    - user count by department
+    - active users by department in selected range
+    - match participations by department in selected range
+    - average Respect and Karma by department
+    - unassigned-user bucket support
+  - reputation insights section:
+    - challenge creation volume
+    - pending/disputed challenge counts
+    - confirmed/rejected outcomes
+  - moderation insights section:
+    - open/in-review/resolved/dismissed report summaries
+    - report categories in selected range
+  - new admin analytics page in client with:
+    - range + department filters
+    - KPI card grid
+    - trend charts
+    - game usage and department comparison visuals
+    - reputation + moderation insight cards
 
 ## Auth + Admin Scope (Current)
 
@@ -201,6 +241,9 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - reset password
   - assign/unassign primary department
   - last-active-admin safety protection
+- Admin analytics:
+  - company-level insights dashboard for activity, game usage, department participation, reputation, and moderation
+  - scope controls for time range and department segmentation
 - Moderation user safety controls:
   - suspend/unsuspend workflow for admins
   - suspended-user blocked-state handling in backend + frontend shell
@@ -505,7 +548,18 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Karma leaderboard is intentionally ordered ascending (lower karma ranks higher).
 - API exposes current-user ranking context even if the user is outside the visible top list.
 
-## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits + Moderation + Notifications + Departments Notes (OA-PT17)
+## Admin Analytics Metric Definitions (OA-PT18)
+
+- Active users (range): unique users with scoped room creation and/or completed-match participation in selected range.
+- Active users (today): unique users with scoped room creation and/or completed-match participation since local start-of-day (`Europe/Berlin`).
+- Matches played: completed `CONNECT_FOUR` + `TRIVIA` sessions (`status = FINISHED`) scoped by range and department filter.
+- Rooms created: lobby room creations scoped by range and department filter (host-based).
+- Respect awarded: sum of `respect_points_awarded` for `COMPLETED_CONFIRMED` challenges resolved in selected range.
+- Karma applied: sum of `karma_points_awarded` for `REJECTED` challenges resolved in selected range.
+- Open moderation reports: `OPEN + IN_REVIEW` report counts in current scoped view.
+- Department match participation: per-user participation count in completed scoped matches (not a cross-department performance score).
+
+## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits + Moderation + Notifications + Departments + Analytics Notes (OA-PT18)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -548,7 +602,12 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
   - specific department UUID
   - `UNASSIGNED`
   - omitted/`ALL` for company-wide view
-- User assignment remains single-primary-department for OA-PT17 (nullable when unassigned).
+- User assignment remains single-primary-department for OA-PT18 (nullable when unassigned).
+- Admin analytics are served via normal authenticated API fetches (no dedicated realtime analytics channel in OA-PT18).
+- Analytics filters are deterministic and scoped by:
+  - selected time range (`today`, `7d`, `30d`, `all`)
+  - optional department filter (`department UUID` or `UNASSIGNED`)
+- Unassigned-user segmentation is treated as a first-class analytics bucket where relevant.
 
 ## Docker Database Commands
 
@@ -644,6 +703,8 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 - Additional game integrations beyond Connect Four and Trivia (UNO remains placeholder)
 - Team/location/division segmentation layers beyond primary department
 - Omnichannel notifications (email/SMS/push) and digest notification systems
+- Export/report builder systems (CSV/Excel suites, scheduled report emails)
+- Enterprise BI/warehouse-style analytics infrastructure
 - Advanced avatar rendering/customization scene tooling
 - Public social profile directory/sharing flows
 - Seasonal resets and reward payout systems
@@ -658,4 +719,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT18+` can expand notification preferences, team/location segmentation, department-aware reporting views, richer admin communication controls, and broader social gameplay modules on top of the OA-PT17 company segmentation baseline.
+`OA-PT19+` can expand export workflows, seasonal insight layers, deeper company reporting slices, optional trend forecasting, and richer segmentation dimensions on top of the OA-PT18 admin analytics baseline.
