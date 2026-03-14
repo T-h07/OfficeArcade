@@ -160,6 +160,14 @@ export function EmployeeDashboardPage() {
                   <span className="font-medium text-oa-text">Resolved Challenges:</span>{" "}
                   {dashboard.resolvedChallengeCount}
                 </p>
+                <p>
+                  <span className="font-medium text-oa-text">Owned Cosmetics:</span>{" "}
+                  {dashboard.ownedCosmeticCount}
+                </p>
+                <p>
+                  <span className="font-medium text-oa-text">Equipped Cosmetics:</span>{" "}
+                  {dashboard.equippedCosmeticCount}
+                </p>
               </div>
             </article>
 
@@ -181,9 +189,42 @@ export function EmployeeDashboardPage() {
               </div>
 
               <p className="mt-4 text-sm text-oa-muted">
-                Respect and Karma values are reputation stats only in OA-PT09 and do not alter gameplay fairness.
+                Respect also powers cosmetic purchases in OA-PT10. Karma remains non-currency and does not alter gameplay fairness.
               </p>
             </article>
+          </section>
+
+          <section className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">
+            <h3 className="text-lg font-semibold text-oa-text">Equipped Cosmetic Loadout</h3>
+            <p className="mt-1 text-sm text-oa-muted">
+              Persisted equipped cosmetics from your inventory profile.
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {dashboard.equippedCosmetics.length === 0 ? (
+                <p className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted">
+                  No cosmetics equipped yet. Visit Store and Inventory to customize your loadout.
+                </p>
+              ) : (
+                dashboard.equippedCosmetics.map((cosmetic) => (
+                  <article
+                    key={cosmetic.cosmeticItemId}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-oa-text">{cosmetic.displayName}</p>
+                      <p className="text-xs text-oa-muted">
+                        {cosmetic.category} · {cosmetic.rarity}
+                      </p>
+                    </div>
+                    <div className="text-right text-xs text-oa-muted">
+                      <p className="text-oa-text">{cosmetic.previewAssetKey}</p>
+                      <p>{formatDateTime(cosmetic.equippedAt)}</p>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
           </section>
 
           <section className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">

@@ -47,6 +47,9 @@ class EmployeeDashboardControllerTest {
         assertThat(response.getBody().enabledGameTypeCount()).isGreaterThan(0);
         assertThat(response.getBody().enabledGameTypes()).isNotEmpty();
         assertThat(response.getBody().winRatePercent()).isBetween(0.0, 100.0);
+        assertThat(response.getBody().ownedCosmeticCount()).isGreaterThanOrEqualTo(0);
+        assertThat(response.getBody().equippedCosmeticCount()).isGreaterThanOrEqualTo(0);
+        assertThat(response.getBody().equippedCosmetics()).isNotNull();
     }
 
     @Test

@@ -16,6 +16,16 @@ export type DashboardChallengeSummary = {
   resolvedAt: string | null;
 };
 
+export type DashboardEquippedCosmetic = {
+  cosmeticItemId: string;
+  code: string;
+  displayName: string;
+  category: "HAT" | "GLASSES" | "OUTFIT" | "PROFILE_FRAME" | "BADGE" | "ACCESSORY";
+  rarity: "COMMON" | "RARE" | "EPIC";
+  previewAssetKey: string;
+  equippedAt: string;
+};
+
 export type EmployeeDashboardResponse = {
   userId: string;
   displayName: string;
@@ -36,6 +46,9 @@ export type EmployeeDashboardResponse = {
   xpProgressPercent: number;
   enabledGameTypeCount: number;
   enabledGameTypes: DashboardGameType[];
+  ownedCosmeticCount: number;
+  equippedCosmeticCount: number;
+  equippedCosmetics: DashboardEquippedCosmetic[];
   pendingChallengeCount: number;
   resolvedChallengeCount: number;
   recentChallenges: DashboardChallengeSummary[];

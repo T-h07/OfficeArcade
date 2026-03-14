@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT09 Implemented Scope
+## OA-PT10 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -52,6 +52,15 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - challenge state integrated into Connect Four result state and a dedicated client Challenges page
   - dashboard now surfaces pending/resolved challenge summaries
   - Karma does **not** alter gameplay fairness in OA-PT09
+- Added Respect-powered store and inventory foundation:
+  - persisted cosmetic catalog with category, rarity, price, enabled flag, and preview key
+  - purchase flow with server-side Respect affordability checks and duplicate ownership blocking
+  - persisted user ownership and equip state
+  - one equipped item per category rule, with automatic category switch handling
+  - Store page for catalog browsing and purchases
+  - Inventory page for owned item management and equip/unequip actions
+  - dashboard cosmetic summary (owned count, equipped count, equipped loadout)
+  - purchase/equip state remains consistent after refresh/restart
 
 ## Auth + Admin Scope (Current)
 
@@ -170,6 +179,39 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `resolved_at`
 - `updated_at`
 
+### `cosmetic_items`
+
+- `id` (UUID, PK)
+- `code` (unique)
+- `display_name`
+- `description`
+- `category` (`HAT`, `GLASSES`, `OUTFIT`, `PROFILE_FRAME`, `BADGE`, `ACCESSORY`)
+- `rarity` (`COMMON`, `RARE`, `EPIC`)
+- `price_respect`
+- `preview_asset_key`
+- `enabled`
+- `created_at`
+- `updated_at`
+
+### `user_owned_cosmetics`
+
+- `id` (UUID, PK)
+- `user_id` (FK to `users`)
+- `cosmetic_item_id` (FK to `cosmetic_items`)
+- `acquired_at`
+- unique ownership rule: `(user_id, cosmetic_item_id)`
+
+### `user_equipped_cosmetics`
+
+- `id` (UUID, PK)
+- `user_id` (FK to `users`)
+- `cosmetic_item_id` (FK to `cosmetic_items`)
+- `category`
+- `equipped_at`
+- uniqueness rules enforce:
+  - one equipped item per category per user: `(user_id, category)`
+  - one equip record per item per user: `(user_id, cosmetic_item_id)`
+
 ## Seeded Dev Credentials
 
 - `admin@officearcade.local` / `Admin@123` (role: `ADMIN`)
@@ -182,7 +224,13 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Seeded admin and employee profiles include non-zero progression values for dashboard testing.
 - Values are persisted in `player_profiles` and survive backend/client restarts.
 
-## Realtime + Game + Reputation Notes (OA-PT09)
+## Store / Inventory Seed Notes (OA-PT10)
+
+- Flyway seeds a starter cosmetics catalog with office-safe items across multiple categories/rarities.
+- The seeded employee profile is elevated to a usable Respect balance baseline for purchase testing.
+- Respect remains the only purchase currency in OA-PT10; Karma is not spendable.
+
+## Realtime + Game + Reputation + Store Notes (OA-PT10)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -196,6 +244,8 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Completed non-draw Connect Four matches create one safe post-match challenge record.
 - Challenges are resolved manually through confirm/reject actions by the beneficiary only.
 - Respect/Karma updates are persisted on player profiles and reflected in dashboard + challenge history views.
+- Store catalog and inventory data are persisted and API-driven.
+- Purchase/equip correctness is server-authoritative; client state is response/refetch driven.
 
 ## Docker Database Commands
 
@@ -289,9 +339,9 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 
 - Room chat and live presence orchestration
 - Additional game integrations (UNO/TRIVIA remain placeholders)
-- Store/inventory ownership flows
 - Leaderboard systems
 - Department/tag modules
+- Advanced avatar rendering/customization scene tooling
 
 ## Branch Strategy
 
@@ -303,4 +353,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT10` will focus on store/inventory/cosmetics progression systems.
+`OA-PT11+` will expand progression systems (for example advanced avatar customization/rendering and broader post-match reward integrations) on top of the OA-PT10 store/inventory foundation.

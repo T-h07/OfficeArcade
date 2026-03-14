@@ -5,6 +5,8 @@ import { RequireRole } from "../features/auth/RequireRole";
 import { AdminUsersPage } from "../features/admin-users/pages/AdminUsersPage";
 import { ChallengesPage } from "../features/challenges/pages/ChallengesPage";
 import { AppShell } from "../features/layout/AppShell";
+import { InventoryPage } from "../features/store/pages/InventoryPage";
+import { StorePage } from "../features/store/pages/StorePage";
 import { AdminOverviewPage } from "../pages/AdminOverviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { ForbiddenPage } from "../pages/ForbiddenPage";
@@ -37,6 +39,8 @@ export function AppRouter() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="play" element={<PlayPage />} />
         <Route path="challenges" element={<ChallengesPage />} />
+        <Route path="store" element={<StorePage />} />
+        <Route path="inventory" element={<InventoryPage />} />
         <Route
           path="admin-overview"
           element={

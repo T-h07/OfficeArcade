@@ -3,10 +3,13 @@ package com.officearcade.server.employee.dashboard;
 import com.officearcade.server.challenges.PostMatchChallengeService;
 import com.officearcade.server.challenges.dto.DashboardChallengeSummaryResponse;
 import com.officearcade.server.catalog.persistence.GameTypeEntityRepository;
+import com.officearcade.server.employee.dashboard.dto.DashboardEquippedCosmeticResponse;
 import com.officearcade.server.employee.dashboard.dto.DashboardGameTypeResponse;
 import com.officearcade.server.employee.dashboard.dto.EmployeeDashboardResponse;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
+import com.officearcade.server.store.persistence.UserEquippedCosmeticEntityRepository;
+import com.officearcade.server.store.persistence.UserOwnedCosmeticEntityRepository;
 import com.officearcade.server.users.UserAccount;
 import com.officearcade.server.users.UserAccountService;
 import java.math.BigDecimal;
@@ -28,17 +31,23 @@ public class EmployeeDashboardService {
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
     private final GameTypeEntityRepository gameTypeEntityRepository;
     private final PostMatchChallengeService postMatchChallengeService;
+    private final UserOwnedCosmeticEntityRepository userOwnedCosmeticEntityRepository;
+    private final UserEquippedCosmeticEntityRepository userEquippedCosmeticEntityRepository;
 
     public EmployeeDashboardService(
             UserAccountService userAccountService,
             PlayerProfileEntityRepository playerProfileEntityRepository,
             GameTypeEntityRepository gameTypeEntityRepository,
-            PostMatchChallengeService postMatchChallengeService
+            PostMatchChallengeService postMatchChallengeService,
+            UserOwnedCosmeticEntityRepository userOwnedCosmeticEntityRepository,
+            UserEquippedCosmeticEntityRepository userEquippedCosmeticEntityRepository
     ) {
         this.userAccountService = userAccountService;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
         this.gameTypeEntityRepository = gameTypeEntityRepository;
         this.postMatchChallengeService = postMatchChallengeService;
+        this.userOwnedCosmeticEntityRepository = userOwnedCosmeticEntityRepository;
+        this.userEquippedCosmeticEntityRepository = userEquippedCosmeticEntityRepository;
     }
 
     @Transactional(readOnly = true)
@@ -81,6 +90,20 @@ public class EmployeeDashboardService {
         int resolvedChallengeCount = postMatchChallengeService.getResolvedChallengeCount(user.id());
         List<DashboardChallengeSummaryResponse> recentChallenges = postMatchChallengeService
                 .getRecentChallengeSummaries(user.id(), 3);
+        int ownedCosmeticCount = (int) userOwnedCosmeticEntityRepository.countByUser_Id(userId);
+        List<DashboardEquippedCosmeticResponse> equippedCosmetics = userEquippedCosmeticEntityRepository
+                .findAllByUser_IdOrderByEquippedAtDesc(userId)
+                .stream()
+                .map(entry -> new DashboardEquippedCosmeticResponse(
+                        entry.getCosmeticItem().getId().toString(),
+                        entry.getCosmeticItem().getCode(),
+                        entry.getCosmeticItem().getDisplayName(),
+                        entry.getCategory().name(),
+                        entry.getCosmeticItem().getRarity().name(),
+                        entry.getCosmeticItem().getPreviewAssetKey(),
+                        entry.getEquippedAt().toString()
+                ))
+                .toList();
 
         return new EmployeeDashboardResponse(
                 user.id(),
@@ -102,6 +125,9 @@ public class EmployeeDashboardService {
                 xpProgressPercent,
                 enabledGameTypes.size(),
                 enabledGameTypes,
+                ownedCosmeticCount,
+                equippedCosmetics.size(),
+                equippedCosmetics,
                 pendingChallengeCount,
                 resolvedChallengeCount,
                 recentChallenges,
