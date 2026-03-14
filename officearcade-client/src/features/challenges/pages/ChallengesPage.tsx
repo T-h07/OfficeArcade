@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { PageHero } from "../../layout/PageHero";
 import { ReportUserModal } from "../../moderation/components/ReportUserModal";
 import { ModerationApiError, submitModerationReport } from "../../moderation/api/moderationApi";
 import type { CreateModerationReportRequest } from "../../moderation/types/moderation.types";
@@ -83,13 +84,11 @@ export function ChallengesPage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Reputation Layer</p>
-        <h1 className="oa-hero-title">Respect & Karma Challenges</h1>
-        <p className="oa-hero-subtitle">
-          Review challenge outcomes, confirm completions, or escalate disputes.
-        </p>
-      </header>
+      <PageHero
+        kicker="Reputation Layer"
+        title="Respect & Karma Challenges"
+        subtitle="Review challenge outcomes, confirm completions, or escalate disputes."
+      />
 
       {errorMessage ? (
         <div className="oa-alert oa-alert-danger">

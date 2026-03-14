@@ -19,6 +19,7 @@ import { UserRoleBadge } from "../components/UserRoleBadge";
 import { UserStatusBadge } from "../components/UserStatusBadge";
 import type { AdminUser, CreateAdminUserRequest, UpdateAdminUserRequest } from "../types/adminUsers.types";
 import type { DepartmentSummary } from "../../departments/types/departments.types";
+import { PageHero } from "../../layout/PageHero";
 
 type RoleFilter = "ALL" | AppRole;
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
@@ -319,28 +320,28 @@ export function AdminUsersPage() {
   const visibleUsers = users;
 
   return (
-    <section className="space-y-5">
-      <header className="rounded-2xl border border-oa-border bg-oa-surface/85 p-5">
-        <p className="text-xs uppercase tracking-[0.18em] text-oa-muted">Admin Module</p>
-        <h1 className="mt-2 text-2xl font-semibold text-oa-text">User Management</h1>
-        <p className="mt-2 text-sm text-oa-muted">
-          Manage development user accounts that power authentication in this in-memory PT03 baseline.
-        </p>
-      </header>
+    <section className="oa-page">
+      <PageHero
+        kicker="Admin Module"
+        title="User Management"
+        subtitle="Manage account access, role state, and department assignment."
+        tone="admin"
+        rightSlot={<span className="oa-chip oa-chip-info">Operations</span>}
+      />
 
-      <form className="grid gap-3 rounded-2xl border border-oa-border bg-oa-surface/70 p-4 lg:grid-cols-[1fr_180px_180px_220px_auto]" onSubmit={handleFilterSubmit}>
+      <form className="oa-panel grid gap-3 lg:grid-cols-[1fr_180px_180px_220px_auto]" onSubmit={handleFilterSubmit}>
         <input
           type="text"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+          className="oa-input"
           placeholder="Search email or display name"
         />
 
         <select
           value={roleFilter}
           onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}
-          className="rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+          className="oa-select"
         >
           <option value="ALL">All roles</option>
           <option value="ADMIN">ADMIN</option>
@@ -350,7 +351,7 @@ export function AdminUsersPage() {
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-          className="rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+          className="oa-select"
         >
           <option value="ALL">All statuses</option>
           <option value="ACTIVE">Active</option>
@@ -360,7 +361,7 @@ export function AdminUsersPage() {
         <select
           value={departmentFilter}
           onChange={(event) => setDepartmentFilter(event.target.value as DepartmentFilter)}
-          className="rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+          className="oa-select"
           disabled={isDepartmentsLoading}
         >
           <option value="ALL">All departments</option>
@@ -375,38 +376,38 @@ export function AdminUsersPage() {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/50"
+            className="oa-btn oa-btn-secondary px-3 py-2"
           >
             Apply
           </button>
           <button
             type="button"
             onClick={handleClearFilters}
-            className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted transition-colors hover:border-oa-accent/50 hover:text-oa-text"
+            className="oa-btn oa-btn-ghost px-3 py-2"
           >
             Clear
           </button>
         </div>
       </form>
 
-      <div className="flex items-center justify-between rounded-2xl border border-oa-border bg-oa-surface/70 px-4 py-3">
+      <div className="oa-panel flex items-center justify-between px-4 py-3">
         <p className="text-sm text-oa-muted">
           {isListLoading ? "Loading users..." : `Showing ${visibleUsers.length} user${visibleUsers.length === 1 ? "" : "s"}`}
         </p>
         <button
           type="button"
           onClick={() => setIsCreateModalOpen(true)}
-          className="rounded-lg border border-oa-accent/55 bg-oa-accent/25 px-4 py-2 text-sm font-semibold text-oa-text transition-colors hover:bg-oa-accent/35"
+          className="oa-btn oa-btn-primary px-4 py-2"
         >
           Create User
         </button>
       </div>
 
       {listError ? (
-        <p className="rounded-lg border border-oa-danger/45 bg-oa-danger/10 px-3 py-2 text-sm text-oa-danger">{listError}</p>
+        <p className="oa-alert oa-alert-danger">{listError}</p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-oa-border bg-oa-surface/70">
+      <div className="oa-panel overflow-x-auto p-0">
         <table className="min-w-full divide-y divide-oa-border text-sm">
           <thead className="bg-black/25 text-left text-xs uppercase tracking-[0.12em] text-oa-muted">
             <tr>
@@ -444,11 +445,7 @@ export function AdminUsersPage() {
                   <td className="px-4 py-3">
                     {managedUser.department ? (
                       <span
-                        className={`rounded-full border px-2.5 py-0.5 text-xs ${
-                          managedUser.department.active
-                            ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
-                            : "border-oa-danger/45 bg-oa-danger/15 text-oa-danger"
-                        }`}
+                        className={`oa-chip ${managedUser.department.active ? "oa-chip-route" : "oa-chip-danger"}`}
                       >
                         {managedUser.department.displayName}
                       </span>
@@ -468,7 +465,7 @@ export function AdminUsersPage() {
                       onClick={() => {
                         void openDetailsForUser(managedUser.id);
                       }}
-                      className="rounded-lg border border-oa-border bg-black/20 px-3 py-1.5 text-xs font-medium text-oa-text transition-colors hover:border-oa-accent/50"
+                      className="oa-btn oa-btn-ghost px-3 py-1.5 text-xs"
                     >
                       Manage
                     </button>

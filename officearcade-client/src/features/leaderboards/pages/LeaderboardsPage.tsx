@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { DepartmentsApiError, listDepartmentDirectory } from "../../departments/api/departmentsApi";
 import type { DepartmentSummary } from "../../departments/types/departments.types";
+import { PageHero } from "../../layout/PageHero";
 import { LeaderboardAvatarChip } from "../components/LeaderboardAvatarChip";
 import { useLeaderboards } from "../hooks/useLeaderboards";
 import type { LeaderboardEntry } from "../types/leaderboards.types";
@@ -125,21 +126,15 @@ export function LeaderboardsPage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Competitive Standings</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="oa-hero-title mt-0 text-2xl">Leaderboards</h1>
-          {leaderboard ? (
-            <span className="oa-chip">
-              Refreshed {formatDateTime(leaderboard.generatedAt)}
-            </span>
-          ) : null}
-        </div>
-        <p className="oa-hero-subtitle">
-          Compare performance and reputation metrics across company or department scope.
-        </p>
-        <p className="mt-1 text-xs text-oa-muted">Scope: {selectedDepartmentLabel}</p>
-      </header>
+      <PageHero
+        kicker="Competitive Standings"
+        title="Leaderboards"
+        subtitle="Compare performance and reputation metrics across company or department scope."
+        rightSlot={
+          leaderboard ? <span className="oa-chip">Refreshed {formatDateTime(leaderboard.generatedAt)}</span> : null
+        }
+        footerSlot={<span className="oa-chip">Scope: {selectedDepartmentLabel}</span>}
+      />
 
       {errorMessage ? (
         <div className="oa-alert oa-alert-danger">

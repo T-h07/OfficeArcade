@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { PageHero } from "../../layout/PageHero";
 import { useStore } from "../hooks/useStore";
 import type { CosmeticCategory, CosmeticRarity, StoreCatalogItem } from "../types/store.types";
 
@@ -63,18 +64,12 @@ export function StorePage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Respect Economy</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="oa-hero-title mt-0 text-2xl">Store</h1>
-          <span className="oa-chip oa-chip-route text-sm font-semibold">
-            Respect: {summary?.respectBalance ?? 0}
-          </span>
-        </div>
-        <p className="oa-hero-subtitle">
-          Buy cosmetics and shape your profile loadout.
-        </p>
-      </header>
+      <PageHero
+        kicker="Respect Economy"
+        title="Store"
+        subtitle="Buy cosmetics and shape your profile loadout."
+        rightSlot={<span className="oa-chip oa-chip-route text-sm font-semibold">Respect: {summary?.respectBalance ?? 0}</span>}
+      />
 
       {errorMessage ? (
         <div className="oa-alert oa-alert-danger">

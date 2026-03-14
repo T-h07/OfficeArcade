@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { DepartmentsApiError, listDepartmentDirectory } from "../../departments/api/departmentsApi";
 import type { DepartmentSummary } from "../../departments/types/departments.types";
+import { PageHero } from "../../layout/PageHero";
 import { useAdminAnalytics } from "../hooks/useAdminAnalytics";
 import type {
   AnalyticsActivityPoint,
@@ -179,20 +180,13 @@ export function AdminAnalyticsPage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Admin Intelligence</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="oa-hero-title mt-0 text-2xl">Company Insights Dashboard</h1>
-          {dashboard ? (
-            <span className="oa-chip">
-              Updated {formatDateTime(dashboard.generatedAt)}
-            </span>
-          ) : null}
-        </div>
-        <p className="oa-hero-subtitle">
-          Participation, reputation, moderation, and game usage in one scoped admin view.
-        </p>
-      </header>
+      <PageHero
+        kicker="Admin Intelligence"
+        title="Company Insights Dashboard"
+        subtitle="Participation, reputation, moderation, and game usage in one scoped admin view."
+        tone="admin"
+        rightSlot={dashboard ? <span className="oa-chip">Updated {formatDateTime(dashboard.generatedAt)}</span> : null}
+      />
 
       <section className="oa-panel grid gap-3 lg:grid-cols-[220px_260px_auto]">
         <select

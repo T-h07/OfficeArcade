@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { PageHero } from "../../layout/PageHero";
 import { useInventory } from "../hooks/useInventory";
 import type { CosmeticCategory, InventoryItem } from "../types/store.types";
 
@@ -65,18 +66,12 @@ export function InventoryPage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Personalization</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="oa-hero-title mt-0 text-2xl">My Inventory</h1>
-          <span className="oa-chip oa-chip-route text-sm font-semibold">
-            Respect: {summary?.respectBalance ?? 0}
-          </span>
-        </div>
-        <p className="oa-hero-subtitle">
-          Manage owned cosmetics and active loadout slots.
-        </p>
-      </header>
+      <PageHero
+        kicker="Personalization"
+        title="My Inventory"
+        subtitle="Manage owned cosmetics and active loadout slots."
+        rightSlot={<span className="oa-chip oa-chip-route text-sm font-semibold">Respect: {summary?.respectBalance ?? 0}</span>}
+      />
 
       {errorMessage ? (
         <div className="oa-alert oa-alert-danger">

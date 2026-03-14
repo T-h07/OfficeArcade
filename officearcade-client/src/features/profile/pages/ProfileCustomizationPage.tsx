@@ -1,4 +1,5 @@
 import { useAuth } from "../../auth/AuthContext";
+import { PageHero } from "../../layout/PageHero";
 import { AvatarLoadoutPreview } from "../components/AvatarLoadoutPreview";
 import { useProfileCustomization } from "../hooks/useProfileCustomization";
 import type { ProfileOwnedCosmetic } from "../types/profile.types";
@@ -60,18 +61,12 @@ export function ProfileCustomizationPage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Identity & Customization</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="oa-hero-title mt-0 text-2xl">Profile Customization</h1>
-          <span className="oa-chip oa-chip-route text-sm font-semibold">
-            Respect: {profile?.respectPoints ?? 0}
-          </span>
-        </div>
-        <p className="oa-hero-subtitle">
-          Tune your avatar loadout from owned inventory items.
-        </p>
-      </header>
+      <PageHero
+        kicker="Identity & Customization"
+        title="Profile Customization"
+        subtitle="Tune your avatar loadout from owned inventory items."
+        rightSlot={<span className="oa-chip oa-chip-route text-sm font-semibold">Respect: {profile?.respectPoints ?? 0}</span>}
+      />
 
       {isLoading ? <LoadingState /> : null}
 

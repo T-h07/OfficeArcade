@@ -1,4 +1,5 @@
 import { useAuth } from "../../auth/AuthContext";
+import { PageHero } from "../../layout/PageHero";
 import { usePlayLimits } from "../../play-limits/hooks/usePlayLimits";
 import { KpiTile } from "../components/KpiTile";
 import { useEmployeeDashboard } from "../hooks/useEmployeeDashboard";
@@ -61,13 +62,12 @@ export function EmployeeDashboardPage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Employee Home</p>
-        <h1 className="oa-hero-title">Dashboard</h1>
-        <p className="oa-hero-subtitle">
-          Progress, cooldown status, and account momentum.
-        </p>
-      </header>
+      <PageHero
+        kicker="Employee Home"
+        title="Dashboard"
+        subtitle="Progress, cooldown status, and account momentum."
+        rightSlot={<span className="oa-chip oa-chip-route">Player Overview</span>}
+      />
 
       {isLoading ? <DashboardLoadingState /> : null}
 

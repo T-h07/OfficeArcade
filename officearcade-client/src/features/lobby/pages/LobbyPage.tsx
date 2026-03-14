@@ -7,6 +7,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { ReportUserModal } from "../../moderation/components/ReportUserModal";
 import { ModerationApiError, submitModerationReport } from "../../moderation/api/moderationApi";
 import type { CreateModerationReportRequest } from "../../moderation/types/moderation.types";
+import { PageHero } from "../../layout/PageHero";
 import { CreateRoomForm } from "../components/CreateRoomForm";
 import { CurrentRoomPanel } from "../components/CurrentRoomPanel";
 import { JoinPrivateRoomModal } from "../components/JoinPrivateRoomModal";
@@ -132,39 +133,26 @@ export function LobbyPage() {
 
   return (
     <section className="oa-page">
-      <header className="oa-hero">
-        <p className="oa-hero-kicker">Multiplayer Arena</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="oa-hero-title mt-0 text-2xl">Play Lobby</h1>
+      <PageHero
+        kicker="Multiplayer Arena"
+        title="Play Lobby"
+        subtitle="Create or join a room and launch short synchronized matches."
+        rightSlot={
           <span className={`oa-chip ${realtimeBadgeClass}`}>
             Realtime: {realtimeStatus === "connected" ? "Live" : realtimeStatus}
           </span>
-        </div>
-        <p className="oa-hero-subtitle">
-          Create or join a room and launch short synchronized matches.
-        </p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="oa-chip">
-            Daily Limit: {playLimits?.dailyGameLimit ?? "-"}
-          </span>
-          <span className="oa-chip">
-            Played Today: {playLimits?.gamesPlayedToday ?? "-"}
-          </span>
-          <span className="oa-chip">
-            Remaining: {playLimits?.gamesRemainingToday ?? "-"}
-          </span>
-          <span
-            className={`oa-chip ${
-              playBlocked
-                ? "oa-chip-warning"
-                : "oa-chip-success"
-            }`}
-          >
-            Eligibility: {playLimits ? (playBlocked ? playLimits.eligibilityReason : "ELIGIBLE") : "Loading"}
-          </span>
-        </div>
-      </header>
+        }
+        footerSlot={
+          <>
+            <span className="oa-chip">Daily Limit: {playLimits?.dailyGameLimit ?? "-"}</span>
+            <span className="oa-chip">Played Today: {playLimits?.gamesPlayedToday ?? "-"}</span>
+            <span className="oa-chip">Remaining: {playLimits?.gamesRemainingToday ?? "-"}</span>
+            <span className={`oa-chip ${playBlocked ? "oa-chip-warning" : "oa-chip-success"}`}>
+              Eligibility: {playLimits ? (playBlocked ? playLimits.eligibilityReason : "ELIGIBLE") : "Loading"}
+            </span>
+          </>
+        }
+      />
 
       {isPlayLimitsLoading ? (
         <div className="oa-empty-state">

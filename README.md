@@ -29,6 +29,13 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - Dashboard, Play Lobby, Challenges, Leaderboards, Store, Inventory, Profile, and Admin Analytics
 - Functionality and route architecture remain unchanged; later OA-UX PTs can deepen page-level redesign and motion polish.
 
+## OA-UX-PT02 Shell, Navigation, and Layout Refresh
+
+- Upgraded core app chrome (sidebar, topbar, content container rhythm) to a stronger arcade-control-room presentation.
+- Added grouped navigation sections, stronger active-route emphasis, and route-mode metadata for player vs admin shell tone.
+- Introduced shared shell primitives (`PageHero`, route metadata helpers, shell-specific utility classes) and applied them across representative routes.
+- Functionality, route guards, and module logic remain unchanged; later OA-UX PTs can deepen per-page module internals and interaction polish.
+
 ## OA-PT19 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
