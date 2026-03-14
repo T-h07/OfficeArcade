@@ -1,8 +1,12 @@
+import { useEffect, useMemo, useState } from "react";
+import type { CosmeticCategory } from "../../store/types/store.types";
 import type { ProfileAvatarLayer } from "../types/profile.types";
+import { initialLettersOf } from "./profilePresentation";
 
 type AvatarLoadoutPreviewProps = {
   displayName: string;
   layers: ProfileAvatarLayer[];
+  selectedCategory?: CosmeticCategory;
 };
 
 function findLayer(layers: ProfileAvatarLayer[], category: ProfileAvatarLayer["category"]) {
@@ -11,30 +15,30 @@ function findLayer(layers: ProfileAvatarLayer[], category: ProfileAvatarLayer["c
 
 function resolveFrameColor(assetKey: string | undefined) {
   if (assetKey === "frame.executive") {
-    return { border: "#f8d48a", glow: "rgba(248, 212, 138, 0.35)" };
+    return { border: "#f8d48a", glow: "rgba(248, 212, 138, 0.4)", ambient: "248,212,138" };
   }
   if (assetKey === "frame.neon") {
-    return { border: "#39e0ff", glow: "rgba(57, 224, 255, 0.35)" };
+    return { border: "#39e0ff", glow: "rgba(57, 224, 255, 0.44)", ambient: "57,224,255" };
   }
-  return { border: "#3c4f70", glow: "rgba(80, 111, 156, 0.28)" };
+  return { border: "#5f7ab0", glow: "rgba(95, 122, 176, 0.35)", ambient: "111,173,255" };
 }
 
 function resolveOutfitStyle(assetKey: string | undefined) {
   if (assetKey === "outfit.blazer-pro") {
     return {
-      background: "linear-gradient(180deg, #253753 0%, #1a2943 55%, #152137 100%)",
-      border: "1px solid rgba(196, 214, 243, 0.35)"
+      background: "linear-gradient(180deg, #2d4263 0%, #213251 54%, #18263e 100%)",
+      border: "1px solid rgba(196, 214, 243, 0.42)"
     };
   }
   if (assetKey === "outfit.hoodie-casual") {
     return {
-      background: "linear-gradient(180deg, #47607c 0%, #354a63 55%, #2b3e57 100%)",
-      border: "1px solid rgba(174, 198, 232, 0.28)"
+      background: "linear-gradient(180deg, #5a7392 0%, #415877 55%, #334968 100%)",
+      border: "1px solid rgba(174, 198, 232, 0.34)"
     };
   }
   return {
-    background: "linear-gradient(180deg, #3d4f69 0%, #2f4159 55%, #24354b 100%)",
-    border: "1px solid rgba(174, 198, 232, 0.25)"
+    background: "linear-gradient(180deg, #465d7c 0%, #33496a 55%, #273b58 100%)",
+    border: "1px solid rgba(174, 198, 232, 0.3)"
   };
 }
 
@@ -50,12 +54,12 @@ function resolveAccessoryColor(assetKey: string | undefined) {
 
 function resolveHatColors(assetKey: string | undefined) {
   if (assetKey === "hat.nightshift-beanie") {
-    return { top: "#2a3144", bottom: "#36425a" };
+    return { top: "#2e3550", bottom: "#404d67" };
   }
   if (assetKey === "hat.classic-cap") {
-    return { top: "#415470", bottom: "#2c3a4f" };
+    return { top: "#4f6587", bottom: "#354866" };
   }
-  return { top: "#3e4f6a", bottom: "#31415a" };
+  return { top: "#435877", bottom: "#334867" };
 }
 
 function resolveGlassesColor(assetKey: string | undefined) {
@@ -78,7 +82,26 @@ function resolveBadgeColors(assetKey: string | undefined) {
   return { bg: "#2f3a4f", border: "#8ea2c0", text: "#dce6f5", label: "BADGE" };
 }
 
-export function AvatarLoadoutPreview({ displayName, layers }: AvatarLoadoutPreviewProps) {
+function layerSignature(layers: ProfileAvatarLayer[]) {
+  return layers
+    .filter((layer) => layer.source === "COSMETIC")
+    .map((layer) => `${layer.category}:${layer.previewAssetKey}`)
+    .sort()
+    .join("|");
+}
+
+const COSMETIC_ORDER: Array<ProfileAvatarLayer["category"]> = [
+  "OUTFIT",
+  "ACCESSORY",
+  "GLASSES",
+  "HAT",
+  "PROFILE_FRAME",
+  "BADGE"
+];
+
+export function AvatarLoadoutPreview({ displayName, layers, selectedCategory }: AvatarLoadoutPreviewProps) {
+  const [pulse, setPulse] = useState(false);
+
   const frameLayer = findLayer(layers, "PROFILE_FRAME");
   const outfitLayer = findLayer(layers, "OUTFIT");
   const accessoryLayer = findLayer(layers, "ACCESSORY");
@@ -92,78 +115,85 @@ export function AvatarLoadoutPreview({ displayName, layers }: AvatarLoadoutPrevi
   const glassesColor = resolveGlassesColor(glassesLayer?.previewAssetKey);
   const hatColors = resolveHatColors(hatLayer?.previewAssetKey);
   const badgeColors = resolveBadgeColors(badgeLayer?.previewAssetKey);
+  const signature = useMemo(() => layerSignature(layers), [layers]);
+
+  useEffect(() => {
+    setPulse(true);
+    const timeoutId = window.setTimeout(() => setPulse(false), 280);
+    return () => window.clearTimeout(timeoutId);
+  }, [signature]);
 
   return (
-    <section className="rounded-2xl border border-oa-border bg-oa-surface/85 p-5">
+    <section className="oa-character-stage-shell">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-oa-muted">Avatar Preview</p>
-          <h2 className="mt-1 text-lg font-semibold text-oa-text">{displayName}</h2>
-          <p className="mt-1 text-sm text-oa-muted">Layered render from equipped cosmetic loadout.</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-oa-muted">Character Stage</p>
+          <h2 className="mt-1 text-xl font-semibold text-oa-text">{displayName}</h2>
+          <p className="mt-1 text-sm text-oa-muted">Your equipped cosmetics are layered into a live arcade identity preview.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="oa-chip">{initialLettersOf(displayName)}</span>
+          {selectedCategory ? <span className="oa-chip oa-chip-route">Editing: {selectedCategory}</span> : null}
         </div>
       </div>
 
-      <div className="mt-5 flex justify-center">
-        <div className="relative aspect-[3/4] w-full max-w-[290px]">
-          <div
-            className="absolute inset-0 rounded-[26px] border-2"
-            style={{
-              borderColor: frameColor.border,
-              boxShadow: `0 0 34px ${frameColor.glow}`
-            }}
-          />
-          <div className="absolute inset-[10px] rounded-[20px] bg-gradient-to-b from-[#111d2f] via-[#0f1b2c] to-[#0b1422]" />
+      <div className={`oa-character-stage mt-5 ${pulse ? "oa-character-stage-pulse" : ""}`}>
+        <div
+          className="oa-character-stage-backdrop"
+          style={{
+            background: `radial-gradient(130% 110% at 50% -10%, rgba(${frameColor.ambient},0.28), rgba(${frameColor.ambient},0) 56%), linear-gradient(180deg, #101a2e 0%, #0d1728 58%, #0b1322 100%)`
+          }}
+        />
+        <div
+          className="oa-character-stage-ring"
+          style={{
+            borderColor: frameColor.border,
+            boxShadow: `0 0 40px ${frameColor.glow}`
+          }}
+        />
+        <div className="oa-character-floor" />
 
-          <div className="absolute left-1/2 top-[3.8rem] h-20 w-20 -translate-x-1/2 rounded-full border border-[#8da7cb]/60 bg-[#f0caa2]" />
-
+        <div className="oa-character-model">
+          <div className="oa-character-shadow" />
           <div
-            className="absolute left-1/2 top-[7.1rem] h-44 w-40 -translate-x-1/2 rounded-[30px_30px_16px_16px]"
+            className="oa-character-body"
             style={outfitStyle}
           />
+          <div className="oa-character-neck" />
+          <div className="oa-character-head" />
+          <div className="oa-character-hairline" />
 
           {accessoryLayer ? (
-            <div className="absolute left-1/2 top-[8.5rem] h-28 w-10 -translate-x-1/2">
-              <div
-                className="absolute left-1/2 top-0 h-4 w-4 -translate-x-1/2 rotate-45 rounded-[4px]"
-                style={{ backgroundColor: accessoryColor }}
-              />
-              <div
-                className="absolute left-1/2 top-[0.72rem] h-16 w-3 -translate-x-1/2 rounded-b-md"
-                style={{ backgroundColor: accessoryColor }}
-              />
+            <div className="oa-character-accessory">
+              {accessoryLayer.previewAssetKey === "accessory.gold-pin" ? (
+                <div className="oa-character-pin" style={{ backgroundColor: accessoryColor }} />
+              ) : (
+                <div className="oa-character-tie">
+                  <div className="oa-character-tie-knot" style={{ backgroundColor: accessoryColor }} />
+                  <div className="oa-character-tie-drop" style={{ backgroundColor: accessoryColor }} />
+                </div>
+              )}
             </div>
           ) : null}
 
           {glassesLayer ? (
-            <div className="absolute left-1/2 top-[5.85rem] h-6 w-20 -translate-x-1/2">
-              <div
-                className="absolute left-0 top-0 h-6 w-8 rounded-full border-2 bg-black/15"
-                style={{ borderColor: glassesColor }}
-              />
-              <div
-                className="absolute right-0 top-0 h-6 w-8 rounded-full border-2 bg-black/15"
-                style={{ borderColor: glassesColor }}
-              />
-              <div className="absolute left-1/2 top-[0.65rem] h-[2px] w-4 -translate-x-1/2 bg-[#9ab2d3]" />
+            <div className="oa-character-glasses">
+              <div className="oa-character-glasses-lens" style={{ borderColor: glassesColor }} />
+              <div className="oa-character-glasses-lens" style={{ borderColor: glassesColor }} />
+              <div className="oa-character-glasses-bridge" />
             </div>
           ) : null}
 
           {hatLayer ? (
-            <>
-              <div
-                className="absolute left-1/2 top-[2.35rem] h-8 w-24 -translate-x-1/2 rounded-[16px_16px_8px_8px]"
-                style={{ backgroundColor: hatColors.top }}
-              />
-              <div
-                className="absolute left-1/2 top-[4.05rem] h-3 w-28 -translate-x-1/2 rounded-full"
-                style={{ backgroundColor: hatColors.bottom }}
-              />
-            </>
+            <div className="oa-character-hat">
+              <div className="oa-character-hat-top" style={{ backgroundColor: hatColors.top }} />
+              <div className="oa-character-hat-brim" style={{ backgroundColor: hatColors.bottom }} />
+            </div>
           ) : null}
 
           {badgeLayer ? (
             <div
-              className="absolute bottom-4 right-4 rounded-full border px-3 py-1 text-[10px] font-semibold tracking-wide"
+              className="oa-character-badge"
               style={{
                 backgroundColor: badgeColors.bg,
                 borderColor: badgeColors.border,
@@ -176,13 +206,32 @@ export function AvatarLoadoutPreview({ displayName, layers }: AvatarLoadoutPrevi
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {COSMETIC_ORDER.map((category) => {
+          const layer = findLayer(layers, category);
+          return (
+            <div
+              key={category}
+              className={`rounded-lg border px-3 py-2 text-xs ${
+                selectedCategory === category
+                  ? "border-[rgba(var(--oa-route-rgb),0.62)] bg-[rgba(var(--oa-route-rgb),0.16)]"
+                  : "border-oa-border/40 bg-oa-surface-soft/38"
+              }`}
+            >
+              <p className="uppercase tracking-[0.12em] text-oa-muted">{category}</p>
+              <p className="mt-1 text-sm font-semibold text-oa-text">{layer?.displayName ?? "Empty Slot"}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
         {layers
           .filter((layer) => layer.source === "COSMETIC")
           .map((layer) => (
             <span
               key={layer.layerKey}
-              className="rounded-full border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted"
+              className={`oa-chip ${selectedCategory === layer.category ? "oa-chip-route" : ""}`}
             >
               {layer.category}
             </span>

@@ -47,13 +47,17 @@ export function LeaderboardAvatarChip({
   const badgeStyle = resolveBadgeStyle(badgeAssetKey);
 
   return (
-    <div className="relative inline-flex h-10 w-10 items-center justify-center">
+    <div className="relative inline-flex h-11 w-11 items-center justify-center">
       <div
-        className="flex h-full w-full items-center justify-center rounded-full border-2 bg-gradient-to-b from-[#24374f] to-[#1a2739] text-xs font-semibold text-oa-text"
-        style={frameStyle}
+        className="flex h-full w-full items-center justify-center rounded-full border-2 bg-gradient-to-b from-[#2a4161] to-[#1a2a42] text-[11px] font-semibold text-oa-text"
+        style={{
+          ...frameStyle,
+          boxShadow: `${frameStyle.boxShadow}, inset 0 0 0 1px rgba(255,255,255,0.06)`
+        }}
       >
         {initialsOf(displayName)}
       </div>
+      <div className="pointer-events-none absolute inset-0 rounded-full border border-white/10" />
       {badgeAssetKey ? (
         <span
           className="absolute -bottom-1 -right-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold"

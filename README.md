@@ -50,6 +50,13 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - Strengthened rarity presentation (common/rare/epic), affordability cues, and equipped/owned/purchasable state styling.
 - Kept purchase/equip backend logic unchanged; this PT is visual and interaction presentation focused.
 
+## OA-UX-PT05 Profile, Avatar, and Character Presence Upgrade
+
+- Upgraded the Profile / Customization experience into a stronger character-first "identity chamber" layout.
+- Added a richer avatar stage with clearer silhouette, layered cosmetic visibility (hat/glasses/outfit/accessory/badge/frame), and subtle equip-change pulse feedback.
+- Introduced reusable profile loadout controls and owned-item presentation components to make slot selection and equip flow more satisfying.
+- Preserved existing equip/loadout backend behavior; this PT is strictly frontend presentation and UX polish.
+
 ## OA-PT19 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
