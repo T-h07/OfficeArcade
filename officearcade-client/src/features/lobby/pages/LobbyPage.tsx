@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ConnectFourPanel } from "../../connect-four/components/ConnectFourPanel";
 import { usePlayLimits } from "../../play-limits/hooks/usePlayLimits";
 import { TriviaBattlePanel } from "../../trivia/components/TriviaBattlePanel";
+import { UnoGamePanel } from "../../uno/components/UnoGamePanel";
 import { useAuth } from "../../auth/AuthContext";
 import { ReportUserModal } from "../../moderation/components/ReportUserModal";
 import { ModerationApiError, submitModerationReport } from "../../moderation/api/moderationApi";
@@ -240,6 +241,7 @@ export function LobbyPage() {
 
       <ConnectFourPanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
       <TriviaBattlePanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
+      <UnoGamePanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
 
       <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
         <CreateRoomForm

@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT18 Implemented Scope
+## OA-PT19 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -99,6 +99,36 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
     - TRIVIA rooms require `maxPlayers = 2`
     - joining is blocked while an active Trivia Battle is in progress
     - if a player leaves during an active Trivia match, room closes cleanly
+- Added third playable game integration: **UNO-style**
+  - server-authoritative UNO game state and turn validation
+  - room-linked UNO lifecycle (`WAITING`, `ACTIVE`, `FINISHED`)
+  - host start rule for UNO rooms with 2 to 4 room members
+  - strict action validation endpoints:
+    - `POST /api/games/uno/room/{roomId}/start`
+    - `POST /api/games/uno/room/{roomId}/play`
+    - `POST /api/games/uno/room/{roomId}/draw`
+    - `GET /api/games/uno/room/{roomId}`
+  - card model and rules in current scope:
+    - color number cards
+    - Skip
+    - Reverse (2-player reverse behaves as skip)
+    - Draw Two
+  - intentional simplifications for OA-PT19:
+    - no Wild / Wild Draw Four yet
+    - no UNO callout penalty
+    - draw-one-and-pass rule (draw is allowed only when no legal play exists)
+  - live UNO sync via STOMP topic:
+    - `/topic/games/uno/{roomId}`
+  - hidden-hand privacy:
+    - players only receive full detail for their own hand
+    - opponents are exposed as hand counts only
+  - UNO room safety aligned with gameplay constraints:
+    - UNO rooms require `maxPlayers` between 2 and 4
+    - joining is blocked while an active UNO match is in progress
+    - if a player leaves during an active UNO match, room closes cleanly
+  - winner detection and post-finish guardrails:
+    - first player to empty their hand wins
+    - further play/draw actions are rejected once finished
 - Added cooldown and daily play-limit enforcement foundation:
   - server-authoritative play eligibility with persisted per-user state
   - default policy:
@@ -375,6 +405,26 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `player_two_score`
 - `winner_user_id` (FK to `users`, nullable)
 - `is_draw`
+- `play_limits_applied`
+- `created_at`
+- `started_at`
+- `ended_at`
+- `updated_at`
+
+### `uno_games`
+
+- `id` (UUID, PK)
+- `room_id` (UUID, unique FK to `rooms`)
+- `status` (`WAITING`, `ACTIVE`, `FINISHED`)
+- `player_order_state` (ordered player IDs for deterministic turn sequencing)
+- `current_turn_index`
+- `direction` (`1` clockwise, `-1` counterclockwise)
+- `current_color` (`RED`, `YELLOW`, `GREEN`, `BLUE`)
+- `draw_pile_state` (serialized deck state)
+- `discard_pile_state` (serialized discard state)
+- `hands_state` (serialized per-player hand state)
+- `winner_user_id` (FK to `users`, nullable)
+- `move_count`
 - `play_limits_applied`
 - `created_at`
 - `started_at`

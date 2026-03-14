@@ -22,8 +22,9 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const isTwoPlayerLockedGame =
-    gameTypeCode.toUpperCase() === "CONNECT_FOUR" || gameTypeCode.toUpperCase() === "TRIVIA";
+  const normalizedGameTypeCode = gameTypeCode.toUpperCase();
+  const isTwoPlayerLockedGame = normalizedGameTypeCode === "CONNECT_FOUR" || normalizedGameTypeCode === "TRIVIA";
+  const isUnoGame = normalizedGameTypeCode === "UNO";
 
   useEffect(() => {
     if (!defaultGameType) {
@@ -38,10 +39,18 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
 
   useEffect(() => {
     if (!isTwoPlayerLockedGame) {
+      if (isUnoGame) {
+        setMaxPlayers((previous) => {
+          if (previous < 2 || previous > 4) {
+            return 4;
+          }
+          return previous;
+        });
+      }
       return;
     }
     setMaxPlayers(2);
-  }, [isTwoPlayerLockedGame]);
+  }, [isTwoPlayerLockedGame, isUnoGame]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,11 +68,15 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
       setFormError("Private room password must be at least 4 characters.");
       return;
     }
+    if (isUnoGame && (maxPlayers < 2 || maxPlayers > 4)) {
+      setFormError("UNO rooms must use between 2 and 4 players.");
+      return;
+    }
 
     const created = await onSubmit({
       roomName: roomName.trim(),
       gameTypeCode,
-      maxPlayers: isTwoPlayerLockedGame ? 2 : maxPlayers,
+      maxPlayers: isTwoPlayerLockedGame ? 2 : isUnoGame ? Math.min(Math.max(maxPlayers, 2), 4) : maxPlayers,
       rounds,
       isPrivate,
       password: isPrivate ? password.trim() : undefined
@@ -74,7 +87,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
     }
 
     setRoomName("Break Room");
-    setMaxPlayers(isTwoPlayerLockedGame ? 2 : 4);
+    setMaxPlayers(isTwoPlayerLockedGame ? 2 : isUnoGame ? 4 : 4);
     setRounds(3);
     setIsPrivate(false);
     setPassword("");
@@ -136,12 +149,15 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
               onChange={(event) => setMaxPlayers(Number(event.target.value))}
               className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
               min={2}
-              max={8}
+              max={isUnoGame ? 4 : 8}
               disabled={disabled || isTwoPlayerLockedGame}
               required
             />
             {isTwoPlayerLockedGame ? (
               <p className="mt-1 text-xs text-oa-muted">Connect Four and Trivia rooms are fixed to 2 players.</p>
+            ) : null}
+            {isUnoGame ? (
+              <p className="mt-1 text-xs text-oa-muted">UNO rooms support 2 to 4 players.</p>
             ) : null}
           </div>
         </div>

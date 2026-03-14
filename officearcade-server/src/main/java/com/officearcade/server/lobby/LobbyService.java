@@ -4,6 +4,7 @@ import com.officearcade.server.catalog.persistence.GameTypeEntity;
 import com.officearcade.server.catalog.persistence.GameTypeEntityRepository;
 import com.officearcade.server.games.connectfour.ConnectFourGameService;
 import com.officearcade.server.games.trivia.TriviaGameService;
+import com.officearcade.server.games.uno.UnoGameService;
 import com.officearcade.server.lobby.dto.CreateLobbyRoomRequest;
 import com.officearcade.server.lobby.dto.JoinLobbyRoomRequest;
 import com.officearcade.server.lobby.dto.LobbyGameTypeResponse;
@@ -41,6 +42,7 @@ public class LobbyService {
 
     private static final String CONNECT_FOUR_CODE = "CONNECT_FOUR";
     private static final String TRIVIA_CODE = "TRIVIA";
+    private static final String UNO_CODE = "UNO";
 
     private final RoomEntityRepository roomEntityRepository;
     private final RoomMemberEntityRepository roomMemberEntityRepository;
@@ -50,6 +52,7 @@ public class LobbyService {
     private final LobbyRealtimePublisher lobbyRealtimePublisher;
     private final ConnectFourGameService connectFourGameService;
     private final TriviaGameService triviaGameService;
+    private final UnoGameService unoGameService;
     private final PlayLimitService playLimitService;
 
     public LobbyService(
@@ -61,6 +64,7 @@ public class LobbyService {
             LobbyRealtimePublisher lobbyRealtimePublisher,
             ConnectFourGameService connectFourGameService,
             TriviaGameService triviaGameService,
+            UnoGameService unoGameService,
             PlayLimitService playLimitService
     ) {
         this.roomEntityRepository = roomEntityRepository;
@@ -71,6 +75,7 @@ public class LobbyService {
         this.lobbyRealtimePublisher = lobbyRealtimePublisher;
         this.connectFourGameService = connectFourGameService;
         this.triviaGameService = triviaGameService;
+        this.unoGameService = unoGameService;
         this.playLimitService = playLimitService;
     }
 
@@ -193,6 +198,7 @@ public class LobbyService {
         playLimitService.assertEligibleForPlayableGame(userId, room.getGameType().getCode());
         assertNoActiveConnectFourGame(room);
         assertNoActiveTriviaGame(room);
+        assertNoActiveUnoGame(room);
         validateJoinPassword(room, request.password());
 
         long currentMembers = roomMemberEntityRepository.countByRoom_Id(roomUuid);
@@ -235,6 +241,7 @@ public class LobbyService {
             RoomEntity saved = roomEntityRepository.save(room);
             connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
             triviaGameService.handleRoomClosed(roomUuid, currentUserId);
+            unoGameService.handleRoomClosed(roomUuid, currentUserId);
             lobbyRealtimePublisher.publishLobbyAndRoom(
                     LobbyRealtimeEventType.ROOM_CLOSED,
                     roomUuid,
@@ -254,6 +261,7 @@ public class LobbyService {
             RoomEntity saved = roomEntityRepository.save(room);
             connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
             triviaGameService.handleRoomClosed(roomUuid, currentUserId);
+            unoGameService.handleRoomClosed(roomUuid, currentUserId);
             lobbyRealtimePublisher.publishLobbyAndRoom(
                     LobbyRealtimeEventType.ROOM_CLOSED,
                     roomUuid,
@@ -273,6 +281,7 @@ public class LobbyService {
             RoomEntity saved = roomEntityRepository.save(room);
             connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
             triviaGameService.handleRoomClosed(roomUuid, currentUserId);
+            unoGameService.handleRoomClosed(roomUuid, currentUserId);
             lobbyRealtimePublisher.publishLobbyAndRoom(
                     LobbyRealtimeEventType.ROOM_CLOSED,
                     roomUuid,
@@ -282,6 +291,26 @@ public class LobbyService {
             return new LobbyRoomActionResponse(
                     "OK",
                     "A player left an active Trivia Battle match. Room is now closed.",
+                    closedRoom
+            );
+        }
+
+        if (isUnoRoom(room) && unoGameService.hasActiveGame(roomUuid)) {
+            roomMemberEntityRepository.deleteAllByRoom_Id(roomUuid);
+            room.setStatus(RoomStatus.CLOSED);
+            RoomEntity saved = roomEntityRepository.save(room);
+            connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
+            triviaGameService.handleRoomClosed(roomUuid, currentUserId);
+            unoGameService.handleRoomClosed(roomUuid, currentUserId);
+            lobbyRealtimePublisher.publishLobbyAndRoom(
+                    LobbyRealtimeEventType.ROOM_CLOSED,
+                    roomUuid,
+                    currentUserId
+            );
+            LobbyRoomDetailResponse closedRoom = toDetail(saved, List.of());
+            return new LobbyRoomActionResponse(
+                    "OK",
+                    "A player left an active UNO match. Room is now closed.",
                     closedRoom
             );
         }
@@ -317,6 +346,7 @@ public class LobbyService {
         RoomEntity saved = roomEntityRepository.save(room);
         connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
         triviaGameService.handleRoomClosed(roomUuid, currentUserId);
+        unoGameService.handleRoomClosed(roomUuid, currentUserId);
         lobbyRealtimePublisher.publishLobbyAndRoom(
                 LobbyRealtimeEventType.ROOM_CLOSED,
                 roomUuid,
@@ -373,6 +403,18 @@ public class LobbyService {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "This Trivia Battle match is already in progress and not joinable."
+            );
+        }
+    }
+
+    private void assertNoActiveUnoGame(RoomEntity room) {
+        if (!isUnoRoom(room)) {
+            return;
+        }
+        if (unoGameService.hasActiveGame(room.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This UNO match is already in progress and not joinable."
             );
         }
     }
@@ -469,6 +511,16 @@ public class LobbyService {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "TRIVIA rooms must use maxPlayers = 2 for OA-PT13."
+                );
+            }
+            return requestedMaxPlayers;
+        }
+
+        if (UNO_CODE.equalsIgnoreCase(gameType.getCode())) {
+            if (requestedMaxPlayers < 2 || requestedMaxPlayers > 4) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "UNO rooms must use maxPlayers between 2 and 4."
                 );
             }
             return requestedMaxPlayers;
@@ -607,5 +659,9 @@ public class LobbyService {
 
     private static boolean isTriviaRoom(RoomEntity room) {
         return TRIVIA_CODE.equalsIgnoreCase(room.getGameType().getCode());
+    }
+
+    private static boolean isUnoRoom(RoomEntity room) {
+        return UNO_CODE.equalsIgnoreCase(room.getGameType().getCode());
     }
 }

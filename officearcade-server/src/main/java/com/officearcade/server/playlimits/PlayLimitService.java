@@ -21,7 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class PlayLimitService {
 
-    private static final Set<String> PLAYABLE_GAME_TYPES = Set.of("CONNECT_FOUR", "TRIVIA");
+    private static final Set<String> PLAYABLE_GAME_TYPES = Set.of("CONNECT_FOUR", "TRIVIA", "UNO");
 
     private final UserPlayLimitStateEntityRepository userPlayLimitStateEntityRepository;
     private final UserEntityRepository userEntityRepository;
