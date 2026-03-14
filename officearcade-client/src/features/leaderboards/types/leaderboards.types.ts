@@ -1,4 +1,5 @@
 import type { AppRole } from "../../auth/auth.types";
+import type { DepartmentSummary } from "../../departments/types/departments.types";
 
 export type LeaderboardType =
   | "WINS"
@@ -27,6 +28,7 @@ export type LeaderboardEntry = {
   userId: string;
   displayName: string;
   role: AppRole;
+  department: DepartmentSummary | null;
   level: number;
   xp: number;
   gamesPlayed: number;
@@ -41,6 +43,8 @@ export type LeaderboardEntry = {
   badgeAssetKey: string | null;
   currentUser: boolean;
 };
+
+export type LeaderboardDepartmentFilter = "ALL" | "UNASSIGNED" | string;
 
 export type LeaderboardResponse = {
   type: LeaderboardType;

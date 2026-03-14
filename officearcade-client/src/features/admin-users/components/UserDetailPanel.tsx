@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import type { AppRole } from "../../auth/auth.types";
+import type { DepartmentSummary } from "../../departments/types/departments.types";
 import type { AdminUser, UpdateAdminUserRequest } from "../types/adminUsers.types";
 import { UserRoleBadge } from "./UserRoleBadge";
 import { UserStatusBadge } from "./UserStatusBadge";
@@ -11,12 +12,15 @@ type UserDetailPanelProps = {
   isSaving: boolean;
   isToggling: boolean;
   isResettingPassword: boolean;
+  isAssigningDepartment: boolean;
+  departments: DepartmentSummary[];
   errorMessage: string | null;
   actionMessage: string | null;
   onClose: () => void;
   onSave: (request: UpdateAdminUserRequest) => Promise<void>;
   onToggleActive: () => Promise<void>;
   onResetPassword: (newPassword: string) => Promise<void>;
+  onAssignDepartment: (departmentId: string | null) => Promise<void>;
 };
 
 function toDisplayTimestamp(value: string) {
@@ -34,17 +38,21 @@ export function UserDetailPanel({
   isSaving,
   isToggling,
   isResettingPassword,
+  isAssigningDepartment,
+  departments,
   errorMessage,
   actionMessage,
   onClose,
   onSave,
   onToggleActive,
-  onResetPassword
+  onResetPassword,
+  onAssignDepartment
 }: UserDetailPanelProps) {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<AppRole>("EMPLOYEE");
   const [newPassword, setNewPassword] = useState("");
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
 
   useEffect(() => {
     if (!isOpen || !user) {
@@ -55,6 +63,7 @@ export function UserDetailPanel({
     setDisplayName(user.displayName);
     setRole(user.role);
     setNewPassword("");
+    setSelectedDepartmentId(user.department?.id ?? "");
   }, [isOpen, user]);
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
@@ -73,6 +82,11 @@ export function UserDetailPanel({
     }
     await onResetPassword(newPassword);
     setNewPassword("");
+  }
+
+  async function handleAssignDepartment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await onAssignDepartment(selectedDepartmentId.trim().length > 0 ? selectedDepartmentId : null);
   }
 
   if (!isOpen) {
@@ -185,6 +199,37 @@ export function UserDetailPanel({
                 {isToggling ? "Applying..." : user.enabled ? "Deactivate User" : "Activate User"}
               </button>
             </div>
+
+            <form className="space-y-3 rounded-xl border border-oa-border bg-black/20 p-4" onSubmit={handleAssignDepartment}>
+              <h3 className="text-sm font-semibold text-oa-text">Department Assignment</h3>
+              <p className="text-xs text-oa-muted">
+                Current:{" "}
+                <span className="text-oa-text">
+                  {user.department ? `${user.department.displayName} (${user.department.code})` : "Unassigned"}
+                </span>
+              </p>
+              <select
+                value={selectedDepartmentId}
+                onChange={(event) => setSelectedDepartmentId(event.target.value)}
+                className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+              >
+                <option value="">Unassigned</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.displayName} ({department.code}){department.active ? "" : " - INACTIVE"}
+                  </option>
+                ))}
+              </select>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isAssigningDepartment}
+                  className="rounded-lg border border-oa-border bg-black/20 px-4 py-2 text-sm font-medium text-oa-text transition-colors hover:border-oa-accent/50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isAssigningDepartment ? "Applying..." : "Apply Department"}
+                </button>
+              </div>
+            </form>
 
             <form className="space-y-3 rounded-xl border border-oa-border bg-black/20 p-4" onSubmit={handleResetPassword}>
               <h3 className="text-sm font-semibold text-oa-text">Reset Password</h3>

@@ -18,6 +18,9 @@ export function AppShell() {
   }
 
   const navItems = getNavItemsForRole(user.role);
+  const departmentLabel = user.department
+    ? `${user.department.displayName} (${user.department.code})`
+    : "Unassigned";
 
   return (
     <div className="flex min-h-screen">
@@ -39,6 +42,7 @@ export function AppShell() {
           <p className="text-xs text-oa-muted">Signed in</p>
           <p className="mt-1 text-sm font-medium text-oa-text">{user.displayName}</p>
           <p className="text-xs text-oa-muted">{user.role}</p>
+          <p className="mt-1 text-xs text-oa-muted">Department: {departmentLabel}</p>
         </div>
       </aside>
 
@@ -57,6 +61,15 @@ export function AppShell() {
             />
             <span className="rounded-full border border-oa-border bg-oa-surface px-3 py-1 text-xs font-medium text-oa-text">
               {user.role}
+            </span>
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                user.department?.active
+                  ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+                  : "border-oa-border bg-oa-surface text-oa-muted"
+              }`}
+            >
+              {departmentLabel}
             </span>
             <button
               type="button"

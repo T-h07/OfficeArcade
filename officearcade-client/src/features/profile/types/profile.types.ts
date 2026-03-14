@@ -1,4 +1,5 @@
 import type { AppRole } from "../../auth/auth.types";
+import type { DepartmentSummary } from "../../departments/types/departments.types";
 import type { CosmeticCategory, CosmeticRarity } from "../../store/types/store.types";
 
 export type ProfileLayerCategory = CosmeticCategory | "BASE_BODY";
@@ -44,6 +45,7 @@ export type ProfileMeResponse = {
   email: string;
   role: AppRole;
   accountEnabled: boolean;
+  department: DepartmentSummary | null;
   level: number;
   xp: number;
   respectPoints: number;

@@ -1,5 +1,7 @@
 package com.officearcade.server.users;
 
+import com.officearcade.server.departments.persistence.DepartmentEntity;
+import com.officearcade.server.departments.persistence.DepartmentEntityRepository;
 import com.officearcade.server.identity.AppRole;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
@@ -23,15 +25,18 @@ public class UserAccountService {
     private final PasswordEncoder passwordEncoder;
     private final UserEntityRepository userEntityRepository;
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
+    private final DepartmentEntityRepository departmentEntityRepository;
 
     public UserAccountService(
             PasswordEncoder passwordEncoder,
             UserEntityRepository userEntityRepository,
-            PlayerProfileEntityRepository playerProfileEntityRepository
+            PlayerProfileEntityRepository playerProfileEntityRepository,
+            DepartmentEntityRepository departmentEntityRepository
     ) {
         this.passwordEncoder = passwordEncoder;
         this.userEntityRepository = userEntityRepository;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
+        this.departmentEntityRepository = departmentEntityRepository;
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +73,16 @@ public class UserAccountService {
         if (query.enabled() != null) {
             specification = specification.and((root, querySpec, criteriaBuilder) ->
                     criteriaBuilder.equal(root.get("enabled"), query.enabled()));
+        }
+        if (query.departmentFilter() != null) {
+            if ("UNASSIGNED".equalsIgnoreCase(query.departmentFilter())) {
+                specification = specification.and((root, querySpec, criteriaBuilder) ->
+                        criteriaBuilder.isNull(root.get("department")));
+            } else {
+                UUID departmentId = parseRequiredDepartmentId(query.departmentFilter());
+                specification = specification.and((root, querySpec, criteriaBuilder) ->
+                        criteriaBuilder.equal(root.get("department").get("id"), departmentId));
+            }
         }
 
         Sort sort = Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("email"));
@@ -137,6 +152,26 @@ public class UserAccountService {
         return toAccount(saved);
     }
 
+    @Transactional
+    public UserAccount assignDepartment(String userIdText, String departmentIdText) {
+        UserEntity userEntity = getRequiredUserEntity(userIdText);
+
+        if (departmentIdText == null || departmentIdText.trim().isEmpty()) {
+            userEntity.setDepartment(null);
+            return toAccount(userEntityRepository.save(userEntity));
+        }
+
+        UUID departmentId = parseRequiredDepartmentId(departmentIdText);
+        DepartmentEntity department = departmentEntityRepository.findById(departmentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Department not found: " + departmentIdText
+                ));
+
+        userEntity.setDepartment(department);
+        return toAccount(userEntityRepository.save(userEntity));
+    }
+
     public boolean passwordMatches(UserAccount user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.passwordHash());
     }
@@ -187,6 +222,7 @@ public class UserAccountService {
     }
 
     private UserAccount toAccount(UserEntity userEntity) {
+        DepartmentEntity department = userEntity.getDepartment();
         return new UserAccount(
                 userEntity.getId().toString(),
                 userEntity.getEmail(),
@@ -198,6 +234,10 @@ public class UserAccountService {
                 userEntity.getSuspendedAt(),
                 userEntity.getSuspensionNote(),
                 userEntity.getSuspendedByAdminId() == null ? null : userEntity.getSuspendedByAdminId().toString(),
+                department == null ? null : department.getId().toString(),
+                department == null ? null : department.getCode(),
+                department == null ? null : department.getDisplayName(),
+                department == null ? null : department.isActive(),
                 userEntity.getCreatedAt(),
                 userEntity.getUpdatedAt()
         );
@@ -216,6 +256,14 @@ public class UserAccountService {
             return parsed.get();
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User id must be a valid UUID.");
+    }
+
+    private static UUID parseRequiredDepartmentId(String id) {
+        try {
+            return UUID.fromString(id);
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Department id must be a valid UUID.");
+        }
     }
 
     private static Optional<UUID> tryParseUserId(String id) {

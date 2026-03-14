@@ -1,6 +1,7 @@
 package com.officearcade.server.auth;
 
 import com.officearcade.server.auth.dto.AuthenticatedUserResponse;
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
 import com.officearcade.server.auth.dto.LoginRequest;
 import com.officearcade.server.auth.dto.LoginResponse;
 import com.officearcade.server.security.JwtService;
@@ -58,7 +59,8 @@ public class AuthService {
                 user.enabled(),
                 user.suspended(),
                 nullableInstant(user.suspendedAt()),
-                user.suspensionNote()
+                user.suspensionNote(),
+                toDepartmentSummary(user)
         );
     }
 
@@ -68,5 +70,17 @@ public class AuthService {
 
     private static String nullableInstant(java.time.Instant instant) {
         return instant == null ? null : instant.toString();
+    }
+
+    private static DepartmentSummaryResponse toDepartmentSummary(UserAccount user) {
+        if (user.departmentId() == null) {
+            return null;
+        }
+        return new DepartmentSummaryResponse(
+                user.departmentId(),
+                user.departmentCode(),
+                user.departmentDisplayName(),
+                Boolean.TRUE.equals(user.departmentActive())
+        );
     }
 }

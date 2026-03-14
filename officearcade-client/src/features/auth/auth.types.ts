@@ -1,3 +1,5 @@
+import type { DepartmentSummary } from "../departments/types/departments.types";
+
 export type AppRole = "ADMIN" | "EMPLOYEE";
 
 export type AuthUser = {
@@ -9,6 +11,7 @@ export type AuthUser = {
   suspended: boolean;
   suspendedAt: string | null;
   suspensionNote: string | null;
+  department: DepartmentSummary | null;
 };
 
 export type LoginRequest = {

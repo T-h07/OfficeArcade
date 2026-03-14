@@ -1,5 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { DepartmentsApiError, listDepartmentDirectory } from "../../departments/api/departmentsApi";
+import type { DepartmentSummary } from "../../departments/types/departments.types";
 import { LeaderboardAvatarChip } from "../components/LeaderboardAvatarChip";
 import { useLeaderboards } from "../hooks/useLeaderboards";
 import type { LeaderboardEntry } from "../types/leaderboards.types";
@@ -36,15 +38,83 @@ function formatMetric(entry: LeaderboardEntry) {
   return entry.primaryMetricDisplay;
 }
 
+function departmentBadgeClass(entry: LeaderboardEntry) {
+  if (entry.department?.active) {
+    return "border-oa-accent/45 bg-oa-accent/15 text-oa-text";
+  }
+  return "border-oa-border bg-black/20 text-oa-muted";
+}
+
 export function LeaderboardsPage() {
   const { accessToken, logout, user } = useAuth();
-  const { selectedType, typeOptions, leaderboard, isLoading, errorMessage, setSelectedType, refresh } =
-    useLeaderboards(accessToken, logout);
+  const {
+    selectedType,
+    selectedDepartmentFilter,
+    typeOptions,
+    leaderboard,
+    isLoading,
+    errorMessage,
+    setSelectedType,
+    setSelectedDepartmentFilter,
+    refresh
+  } = useLeaderboards(accessToken, logout);
+  const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
+  const [isDepartmentFilterLoading, setIsDepartmentFilterLoading] = useState(false);
+  const [departmentFilterError, setDepartmentFilterError] = useState<string | null>(null);
 
   const selectedOption = useMemo(
     () => typeOptions.find((option) => option.type === selectedType) ?? null,
     [typeOptions, selectedType]
   );
+
+  useEffect(() => {
+    async function loadDepartments() {
+      if (!accessToken) {
+        setDepartments([]);
+        setDepartmentFilterError(null);
+        setIsDepartmentFilterLoading(false);
+        return;
+      }
+
+      setIsDepartmentFilterLoading(true);
+      setDepartmentFilterError(null);
+      try {
+        const response = await listDepartmentDirectory(accessToken, false);
+        setDepartments(
+          response.departments.map((department) => ({
+            id: department.id,
+            code: department.code,
+            displayName: department.displayName,
+            active: department.active
+          }))
+        );
+      } catch (error) {
+        if (error instanceof DepartmentsApiError && error.status === 401) {
+          logout();
+          return;
+        }
+        setDepartmentFilterError("Unable to load departments for leaderboard filtering.");
+      } finally {
+        setIsDepartmentFilterLoading(false);
+      }
+    }
+
+    void loadDepartments();
+  }, [accessToken, logout]);
+
+  const selectedDepartmentLabel = useMemo(() => {
+    if (selectedDepartmentFilter === "ALL") {
+      return "All Departments";
+    }
+    if (selectedDepartmentFilter === "UNASSIGNED") {
+      return "Unassigned Users";
+    }
+    const selectedDepartment = departments.find((department) => department.id === selectedDepartmentFilter);
+    if (!selectedDepartment) {
+      return "Selected Department";
+    }
+    return `${selectedDepartment.displayName} (${selectedDepartment.code})`;
+  }, [departments, selectedDepartmentFilter]);
 
   const topThree = leaderboard?.entries.slice(0, 3) ?? [];
   const currentUserVisibleInTop = leaderboard?.entries.some((entry) => entry.currentUser) ?? false;
@@ -68,11 +138,18 @@ export function LeaderboardsPage() {
         <p className="mt-2 text-sm text-oa-muted">
           Compare standings across performance and reputation metrics. Rankings use persisted OfficeArcade data.
         </p>
+        <p className="mt-1 text-xs text-oa-muted">Scope: {selectedDepartmentLabel}</p>
       </header>
 
       {errorMessage ? (
         <div className="rounded-xl border border-oa-danger/45 bg-oa-danger/10 px-4 py-3 text-sm text-oa-danger">
           {errorMessage}
+        </div>
+      ) : null}
+
+      {departmentFilterError ? (
+        <div className="rounded-xl border border-oa-danger/45 bg-oa-danger/10 px-4 py-3 text-sm text-oa-danger">
+          {departmentFilterError}
         </div>
       ) : null}
 
@@ -93,6 +170,21 @@ export function LeaderboardsPage() {
               {option.title}
             </button>
           ))}
+
+          <select
+            value={selectedDepartmentFilter}
+            onChange={(event) => setSelectedDepartmentFilter(event.target.value)}
+            className="rounded-md border border-oa-border bg-black/25 px-3 py-2 text-xs text-oa-text outline-none transition-colors focus:border-oa-accent/50"
+            disabled={isLoading || isDepartmentFilterLoading}
+          >
+            <option value="ALL">All Departments</option>
+            <option value="UNASSIGNED">Unassigned Users</option>
+            {departments.map((department) => (
+              <option key={department.id} value={department.id}>
+                {department.displayName} ({department.code}){department.active ? "" : " - INACTIVE"}
+              </option>
+            ))}
+          </select>
 
           <button
             type="button"
@@ -155,6 +247,13 @@ export function LeaderboardsPage() {
                     <p className="text-xs text-oa-muted">
                       {leaderboard.metricLabel}: {formatMetric(entry)}
                     </p>
+                    <p className="mt-1 text-xs">
+                      <span className={`rounded-full border px-2 py-0.5 ${departmentBadgeClass(entry)}`}>
+                        {entry.department
+                          ? `${entry.department.displayName} (${entry.department.code})`
+                          : "Unassigned Department"}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </article>
@@ -162,13 +261,18 @@ export function LeaderboardsPage() {
           </section>
 
           <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-4">
-            <h2 className="text-lg font-semibold text-oa-text">{leaderboard.title} Rankings</h2>
+            <h2 className="text-lg font-semibold text-oa-text">
+              {leaderboard.title} Rankings
+              <span className="ml-2 text-sm font-normal text-oa-muted">({selectedDepartmentLabel})</span>
+            </h2>
             <p className="mt-1 text-sm text-oa-muted">Showing top {leaderboard.entries.length} eligible users.</p>
 
             <div className="mt-4 space-y-2">
               {leaderboard.entries.length === 0 ? (
                 <p className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted">
-                  No ranking data available for this leaderboard yet.
+                  {selectedDepartmentFilter === "ALL"
+                    ? "No ranking data available for this leaderboard yet."
+                    : "No ranking data available for the selected department filter yet."}
                 </p>
               ) : (
                 leaderboard.entries.map((entry) => (
@@ -195,6 +299,13 @@ export function LeaderboardsPage() {
                           {entry.role} · Wins {entry.wins} · Win Rate {entry.winRatePercent.toFixed(1)}% · Level{" "}
                           {entry.level}
                         </p>
+                        <p className="mt-0.5 text-xs">
+                          <span className={`rounded-full border px-2 py-0.5 ${departmentBadgeClass(entry)}`}>
+                            {entry.department
+                              ? `${entry.department.displayName} (${entry.department.code})`
+                              : "Unassigned Department"}
+                          </span>
+                        </p>
                       </div>
                     </div>
 
@@ -213,7 +324,7 @@ export function LeaderboardsPage() {
             {leaderboard.currentUserEligible && leaderboard.currentUserEntry ? (
               <div className="mt-3 rounded-lg border border-oa-accent/45 bg-oa-accent/10 px-3 py-3">
                 <p className="text-sm font-medium text-oa-text">
-                  #{leaderboard.currentUserEntry.rank} in {leaderboard.title}
+                  #{leaderboard.currentUserEntry.rank} in {leaderboard.title} ({selectedDepartmentLabel})
                 </p>
                 <p className="mt-1 text-sm text-oa-muted">
                   {leaderboard.metricLabel}: {leaderboard.currentUserEntry.primaryMetricDisplay}

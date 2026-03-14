@@ -1,6 +1,7 @@
 package com.officearcade.server.employee.dashboard.dto;
 
 import com.officearcade.server.challenges.dto.DashboardChallengeSummaryResponse;
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
 import java.util.List;
 
 public record EmployeeDashboardResponse(
@@ -9,6 +10,7 @@ public record EmployeeDashboardResponse(
         String email,
         String role,
         boolean accountEnabled,
+        DepartmentSummaryResponse department,
         int level,
         int xp,
         int respectPoints,

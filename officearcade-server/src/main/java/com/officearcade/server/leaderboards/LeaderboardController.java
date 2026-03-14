@@ -34,18 +34,20 @@ public class LeaderboardController {
     public LeaderboardResponse getLeaderboard(
             @AuthenticationPrincipal OfficeArcadePrincipal principal,
             @RequestParam(name = "type", defaultValue = "WINS") LeaderboardType type,
-            @RequestParam(name = "limit", required = false) Integer limit
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "departmentId", required = false) String departmentId
     ) {
-        return leaderboardService.getLeaderboard(resolvePrincipalId(principal), type, limit);
+        return leaderboardService.getLeaderboard(resolvePrincipalId(principal), type, limit, departmentId);
     }
 
     @GetMapping("/{type}")
     public LeaderboardResponse getLeaderboardByPath(
             @AuthenticationPrincipal OfficeArcadePrincipal principal,
             @PathVariable LeaderboardType type,
-            @RequestParam(name = "limit", required = false) Integer limit
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "departmentId", required = false) String departmentId
     ) {
-        return leaderboardService.getLeaderboard(resolvePrincipalId(principal), type, limit);
+        return leaderboardService.getLeaderboard(resolvePrincipalId(principal), type, limit, departmentId);
     }
 
     @GetMapping("/{type}/me")

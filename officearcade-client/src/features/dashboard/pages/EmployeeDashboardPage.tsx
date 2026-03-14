@@ -103,6 +103,17 @@ export function EmployeeDashboardPage() {
                 </span>
                 <span
                   className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    dashboard.department?.active
+                      ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+                      : "border-oa-border bg-black/20 text-oa-muted"
+                  }`}
+                >
+                  {dashboard.department
+                    ? `${dashboard.department.displayName} (${dashboard.department.code})`
+                    : "Unassigned Department"}
+                </span>
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
                     dashboard.accountEnabled
                       ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
                       : "border-oa-danger/45 bg-oa-danger/15 text-oa-danger"
@@ -220,6 +231,12 @@ export function EmployeeDashboardPage() {
                 </p>
                 <p>
                   <span className="font-medium text-oa-text">Role:</span> {dashboard.role}
+                </p>
+                <p>
+                  <span className="font-medium text-oa-text">Department:</span>{" "}
+                  {dashboard.department
+                    ? `${dashboard.department.displayName} (${dashboard.department.code})`
+                    : "Unassigned"}
                 </p>
                 <p>
                   <span className="font-medium text-oa-text">Profile Updated:</span>{" "}

@@ -3,9 +3,11 @@ package com.officearcade.server.admin.users;
 import com.officearcade.server.admin.users.dto.AdminUserActionResponse;
 import com.officearcade.server.admin.users.dto.AdminUserListResponse;
 import com.officearcade.server.admin.users.dto.AdminUserResponse;
+import com.officearcade.server.admin.users.dto.AssignUserDepartmentRequest;
 import com.officearcade.server.admin.users.dto.CreateAdminUserRequest;
 import com.officearcade.server.admin.users.dto.ResetUserPasswordRequest;
 import com.officearcade.server.admin.users.dto.UpdateAdminUserRequest;
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
 import com.officearcade.server.identity.AppRole;
 import com.officearcade.server.users.UserAccount;
 import jakarta.validation.Valid;
@@ -37,9 +39,10 @@ public class AdminUserManagementController {
     public AdminUserListResponse listUsers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) AppRole role,
-            @RequestParam(required = false) Boolean active
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String departmentId
     ) {
-        List<AdminUserResponse> users = adminUserManagementService.listUsers(search, role, active).stream()
+        List<AdminUserResponse> users = adminUserManagementService.listUsers(search, role, active, departmentId).stream()
                 .map(AdminUserManagementController::toResponse)
                 .toList();
 
@@ -97,6 +100,15 @@ public class AdminUserManagementController {
         return new AdminUserActionResponse("OK", "Password reset successfully.");
     }
 
+    @PostMapping("/{id}/assign-department")
+    public AdminUserResponse assignDepartment(
+            @PathVariable String id,
+            @RequestBody(required = false) AssignUserDepartmentRequest request
+    ) {
+        String departmentId = request == null ? null : request.departmentId();
+        return toResponse(adminUserManagementService.assignDepartment(id, departmentId));
+    }
+
     private static AdminUserResponse toResponse(UserAccount user) {
         return new AdminUserResponse(
                 user.id(),
@@ -104,8 +116,21 @@ public class AdminUserManagementController {
                 user.displayName(),
                 user.role().name(),
                 user.enabled(),
+                toDepartmentSummary(user),
                 user.createdAt().toString(),
                 user.updatedAt().toString()
+        );
+    }
+
+    private static DepartmentSummaryResponse toDepartmentSummary(UserAccount user) {
+        if (user.departmentId() == null) {
+            return null;
+        }
+        return new DepartmentSummaryResponse(
+                user.departmentId(),
+                user.departmentCode(),
+                user.departmentDisplayName(),
+                Boolean.TRUE.equals(user.departmentActive())
         );
     }
 }

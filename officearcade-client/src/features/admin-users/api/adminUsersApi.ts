@@ -59,6 +59,9 @@ export async function listAdminUsers(token: string, filters: ListAdminUsersFilte
   if (typeof filters.active === "boolean") {
     query.set("active", String(filters.active));
   }
+  if (filters.departmentId && filters.departmentId.trim().length > 0) {
+    query.set("departmentId", filters.departmentId.trim());
+  }
 
   const suffix = query.toString().length > 0 ? `?${query.toString()}` : "";
   const response = await fetch(resolveUrl(`/api/admin/users${suffix}`), {
@@ -169,4 +172,25 @@ export async function resetAdminUserPassword(
   }
 
   return (await response.json()) as AdminUserActionResponse;
+}
+
+export async function assignAdminUserDepartment(
+  token: string,
+  userId: string,
+  departmentId: string | null
+): Promise<AdminUser> {
+  const response = await fetch(resolveUrl(`/api/admin/users/${userId}/assign-department`), {
+    method: "POST",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ departmentId })
+  });
+
+  if (!response.ok) {
+    await parseError(response, "Unable to assign department.");
+  }
+
+  return (await response.json()) as AdminUser;
 }

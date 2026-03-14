@@ -3,6 +3,7 @@ package com.officearcade.server.employee.dashboard;
 import com.officearcade.server.challenges.PostMatchChallengeService;
 import com.officearcade.server.challenges.dto.DashboardChallengeSummaryResponse;
 import com.officearcade.server.catalog.persistence.GameTypeEntityRepository;
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
 import com.officearcade.server.employee.dashboard.dto.DashboardEquippedCosmeticResponse;
 import com.officearcade.server.employee.dashboard.dto.DashboardGameTypeResponse;
 import com.officearcade.server.employee.dashboard.dto.EmployeeDashboardResponse;
@@ -119,6 +120,7 @@ public class EmployeeDashboardService {
                 user.email(),
                 user.role().name(),
                 user.enabled(),
+                toDepartmentSummary(user),
                 level,
                 xp,
                 Math.max(profile.getRespectPoints(), 0),
@@ -154,5 +156,17 @@ public class EmployeeDashboardService {
 
     private static double roundToSingleDecimal(double value) {
         return BigDecimal.valueOf(value).setScale(1, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private static DepartmentSummaryResponse toDepartmentSummary(UserAccount user) {
+        if (user.departmentId() == null) {
+            return null;
+        }
+        return new DepartmentSummaryResponse(
+                user.departmentId(),
+                user.departmentCode(),
+                user.departmentDisplayName(),
+                Boolean.TRUE.equals(user.departmentActive())
+        );
     }
 }

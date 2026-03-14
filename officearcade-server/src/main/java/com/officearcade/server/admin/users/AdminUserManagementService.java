@@ -20,8 +20,8 @@ public class AdminUserManagementService {
         this.userAccountService = userAccountService;
     }
 
-    public List<UserAccount> listUsers(String search, AppRole role, Boolean active) {
-        return userAccountService.findUsers(new UserQuery(search, role, active));
+    public List<UserAccount> listUsers(String search, AppRole role, Boolean active, String departmentFilter) {
+        return userAccountService.findUsers(new UserQuery(search, role, active, departmentFilter));
     }
 
     public UserAccount getUser(String id) {
@@ -51,5 +51,9 @@ public class AdminUserManagementService {
 
     public UserAccount resetPassword(String id, String rawPassword) {
         return userAccountService.resetPassword(id, rawPassword);
+    }
+
+    public UserAccount assignDepartment(String id, String departmentId) {
+        return userAccountService.assignDepartment(id, departmentId);
     }
 }

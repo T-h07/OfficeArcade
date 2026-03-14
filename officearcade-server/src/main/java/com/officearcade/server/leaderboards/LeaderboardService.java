@@ -1,5 +1,8 @@
 package com.officearcade.server.leaderboards;
 
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
+import com.officearcade.server.departments.persistence.DepartmentEntity;
+import com.officearcade.server.departments.persistence.DepartmentEntityRepository;
 import com.officearcade.server.leaderboards.dto.LeaderboardEntryResponse;
 import com.officearcade.server.leaderboards.dto.LeaderboardResponse;
 import com.officearcade.server.leaderboards.dto.LeaderboardTypeListResponse;
@@ -39,15 +42,18 @@ public class LeaderboardService {
     private final UserEntityRepository userEntityRepository;
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
     private final UserEquippedCosmeticEntityRepository userEquippedCosmeticEntityRepository;
+    private final DepartmentEntityRepository departmentEntityRepository;
 
     public LeaderboardService(
             UserEntityRepository userEntityRepository,
             PlayerProfileEntityRepository playerProfileEntityRepository,
-            UserEquippedCosmeticEntityRepository userEquippedCosmeticEntityRepository
+            UserEquippedCosmeticEntityRepository userEquippedCosmeticEntityRepository,
+            DepartmentEntityRepository departmentEntityRepository
     ) {
         this.userEntityRepository = userEntityRepository;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
         this.userEquippedCosmeticEntityRepository = userEquippedCosmeticEntityRepository;
+        this.departmentEntityRepository = departmentEntityRepository;
     }
 
     @Transactional(readOnly = true)
@@ -68,11 +74,17 @@ public class LeaderboardService {
     }
 
     @Transactional(readOnly = true)
-    public LeaderboardResponse getLeaderboard(String currentUserIdText, LeaderboardType type, Integer requestedLimit) {
+    public LeaderboardResponse getLeaderboard(
+            String currentUserIdText,
+            LeaderboardType type,
+            Integer requestedLimit,
+            String departmentFilter
+    ) {
         UUID currentUserId = parseUserId(currentUserIdText);
         int effectiveLimit = normalizeLimit(requestedLimit);
+        DepartmentFilter resolvedDepartmentFilter = resolveDepartmentFilter(departmentFilter);
 
-        List<RankedCandidate> rankedCandidates = rankCandidates(type);
+        List<RankedCandidate> rankedCandidates = rankCandidates(type, resolvedDepartmentFilter);
         List<LeaderboardEntryResponse> entries = rankedCandidates.stream()
                 .limit(effectiveLimit)
                 .map(candidate -> toResponse(candidate, type, currentUserId))
@@ -108,15 +120,15 @@ public class LeaderboardService {
     public LeaderboardEntryResponse getCurrentUserRank(String currentUserIdText, LeaderboardType type) {
         UUID currentUserId = parseUserId(currentUserIdText);
 
-        return rankCandidates(type).stream()
+        return rankCandidates(type, null).stream()
                 .filter(candidate -> candidate.candidate().userId().equals(currentUserId))
                 .findFirst()
                 .map(candidate -> toResponse(candidate, type, currentUserId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, resolveIneligibleNote(type)));
     }
 
-    private List<RankedCandidate> rankCandidates(LeaderboardType type) {
-        List<LeaderboardCandidate> candidates = buildCandidates().stream()
+    private List<RankedCandidate> rankCandidates(LeaderboardType type, DepartmentFilter departmentFilter) {
+        List<LeaderboardCandidate> candidates = buildCandidates(departmentFilter).stream()
                 .filter(candidate -> isEligible(type, candidate))
                 .toList();
 
@@ -140,8 +152,25 @@ public class LeaderboardService {
         return ranked;
     }
 
-    private List<LeaderboardCandidate> buildCandidates() {
+    private List<LeaderboardCandidate> buildCandidates(DepartmentFilter departmentFilter) {
         List<UserEntity> enabledUsers = userEntityRepository.findAllByEnabledTrueOrderByCreatedAtAscIdAsc();
+        if (enabledUsers.isEmpty()) {
+            return List.of();
+        }
+
+        if (departmentFilter != null) {
+            if (departmentFilter.unassignedOnly()) {
+                enabledUsers = enabledUsers.stream()
+                        .filter(user -> user.getDepartment() == null)
+                        .toList();
+            } else {
+                UUID departmentId = departmentFilter.departmentId();
+                enabledUsers = enabledUsers.stream()
+                        .filter(user -> user.getDepartment() != null && user.getDepartment().getId().equals(departmentId))
+                        .toList();
+            }
+        }
+
         if (enabledUsers.isEmpty()) {
             return List.of();
         }
@@ -178,11 +207,25 @@ public class LeaderboardService {
                     : round((wins * 100.0) / totalMatches, 4);
 
             CosmeticMarkers markers = cosmeticMarkersByUserId.getOrDefault(user.getId(), CosmeticMarkers.EMPTY);
+            String departmentId = null;
+            String departmentCode = null;
+            String departmentDisplayName = null;
+            Boolean departmentActive = null;
+            if (user.getDepartment() != null) {
+                departmentId = user.getDepartment().getId().toString();
+                departmentCode = user.getDepartment().getCode();
+                departmentDisplayName = user.getDepartment().getDisplayName();
+                departmentActive = user.getDepartment().isActive();
+            }
 
             candidates.add(new LeaderboardCandidate(
                     user.getId(),
                     user.getDisplayName(),
                     user.getRole().name(),
+                    departmentId,
+                    departmentCode,
+                    departmentDisplayName,
+                    departmentActive,
                     user.getCreatedAt(),
                     level,
                     xp,
@@ -317,6 +360,7 @@ public class LeaderboardService {
                 candidate.userId().toString(),
                 candidate.displayName(),
                 candidate.role(),
+                toDepartmentSummary(candidate),
                 candidate.level(),
                 candidate.xp(),
                 candidate.gamesPlayed(),
@@ -360,6 +404,46 @@ public class LeaderboardService {
         return BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP).doubleValue();
     }
 
+    private DepartmentFilter resolveDepartmentFilter(String departmentFilter) {
+        if (departmentFilter == null) {
+            return null;
+        }
+
+        String normalized = departmentFilter.trim();
+        if (normalized.isEmpty() || "ALL".equalsIgnoreCase(normalized)) {
+            return null;
+        }
+        if ("UNASSIGNED".equalsIgnoreCase(normalized)) {
+            return DepartmentFilter.unassigned();
+        }
+
+        UUID departmentId;
+        try {
+            departmentId = UUID.fromString(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Department filter must be a UUID.");
+        }
+
+        DepartmentEntity department = departmentEntityRepository.findById(departmentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Department filter not found: " + departmentFilter
+                ));
+        return DepartmentFilter.forDepartment(department.getId());
+    }
+
+    private static DepartmentSummaryResponse toDepartmentSummary(LeaderboardCandidate candidate) {
+        if (candidate.departmentId() == null) {
+            return null;
+        }
+        return new DepartmentSummaryResponse(
+                candidate.departmentId(),
+                candidate.departmentCode(),
+                candidate.departmentDisplayName(),
+                Boolean.TRUE.equals(candidate.departmentActive())
+        );
+    }
+
     private record RankedCandidate(int rank, LeaderboardCandidate candidate) {
     }
 
@@ -371,6 +455,10 @@ public class LeaderboardService {
             UUID userId,
             String displayName,
             String role,
+            String departmentId,
+            String departmentCode,
+            String departmentDisplayName,
+            Boolean departmentActive,
             Instant createdAt,
             int level,
             int xp,
@@ -385,5 +473,15 @@ public class LeaderboardService {
             String profileFrameAssetKey,
             String badgeAssetKey
     ) {
+    }
+
+    private record DepartmentFilter(UUID departmentId, boolean unassignedOnly) {
+        private static DepartmentFilter forDepartment(UUID departmentId) {
+            return new DepartmentFilter(departmentId, false);
+        }
+
+        private static DepartmentFilter unassigned() {
+            return new DepartmentFilter(null, true);
+        }
     }
 }

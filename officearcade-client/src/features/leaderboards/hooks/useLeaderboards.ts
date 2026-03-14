@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getLeaderboard, getLeaderboardTypes, LeaderboardsApiError } from "../api/leaderboardsApi";
 import type {
+  LeaderboardDepartmentFilter,
   LeaderboardResponse,
   LeaderboardType,
   LeaderboardTypeOption
@@ -10,11 +11,13 @@ const DEFAULT_TYPE: LeaderboardType = "WINS";
 
 type UseLeaderboardsResult = {
   selectedType: LeaderboardType;
+  selectedDepartmentFilter: LeaderboardDepartmentFilter;
   typeOptions: LeaderboardTypeOption[];
   leaderboard: LeaderboardResponse | null;
   isLoading: boolean;
   errorMessage: string | null;
   setSelectedType: (type: LeaderboardType) => void;
+  setSelectedDepartmentFilter: (filter: LeaderboardDepartmentFilter) => void;
   refresh: () => Promise<void>;
 };
 
@@ -27,6 +30,8 @@ function resolveErrorMessage(error: unknown, fallbackMessage: string) {
 
 export function useLeaderboards(accessToken: string | null, onUnauthorized: () => void): UseLeaderboardsResult {
   const [selectedType, setSelectedType] = useState<LeaderboardType>(DEFAULT_TYPE);
+  const [selectedDepartmentFilter, setSelectedDepartmentFilter] =
+    useState<LeaderboardDepartmentFilter>("ALL");
   const [typeOptions, setTypeOptions] = useState<LeaderboardTypeOption[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +61,12 @@ export function useLeaderboards(accessToken: string | null, onUnauthorized: () =
         setSelectedType(activeType);
       }
 
-      const nextLeaderboard = await getLeaderboard(accessToken, activeType, 25);
+      const nextLeaderboard = await getLeaderboard(
+        accessToken,
+        activeType,
+        25,
+        selectedDepartmentFilter === "ALL" ? undefined : selectedDepartmentFilter
+      );
       setLeaderboard(nextLeaderboard);
     } catch (error) {
       if (error instanceof LeaderboardsApiError && error.status === 401) {
@@ -68,7 +78,7 @@ export function useLeaderboards(accessToken: string | null, onUnauthorized: () =
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, onUnauthorized, selectedType]);
+  }, [accessToken, onUnauthorized, selectedDepartmentFilter, selectedType]);
 
   useEffect(() => {
     void refresh();
@@ -76,11 +86,13 @@ export function useLeaderboards(accessToken: string | null, onUnauthorized: () =
 
   return {
     selectedType,
+    selectedDepartmentFilter,
     typeOptions,
     leaderboard,
     isLoading,
     errorMessage,
     setSelectedType,
+    setSelectedDepartmentFilter,
     refresh
   };
 }

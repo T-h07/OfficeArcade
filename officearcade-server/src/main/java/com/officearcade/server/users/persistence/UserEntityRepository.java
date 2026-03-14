@@ -15,5 +15,11 @@ public interface UserEntityRepository extends JpaRepository<UserEntity, UUID>, J
 
     long countByRoleAndEnabledTrueAndSuspendedFalse(AppRole role);
 
+    long countByDepartment_Id(UUID departmentId);
+
     List<UserEntity> findAllByEnabledTrueOrderByCreatedAtAscIdAsc();
+
+    List<UserEntity> findAllByDepartment_IdOrderByCreatedAtAscIdAsc(UUID departmentId);
+
+    List<UserEntity> findAllByEnabledTrueAndDepartment_IdOrderByCreatedAtAscIdAsc(UUID departmentId);
 }

@@ -3,6 +3,7 @@ import { useAuth } from "../../auth/AuthContext";
 import type { AppRole } from "../../auth/auth.types";
 import {
   activateAdminUser,
+  assignAdminUserDepartment,
   ApiError,
   createAdminUser,
   deactivateAdminUser,
@@ -11,14 +12,17 @@ import {
   resetAdminUserPassword,
   updateAdminUser
 } from "../api/adminUsersApi";
+import { DepartmentsApiError, listAdminDepartments } from "../../departments/api/departmentsApi";
 import { CreateUserModal } from "../components/CreateUserModal";
 import { UserDetailPanel } from "../components/UserDetailPanel";
 import { UserRoleBadge } from "../components/UserRoleBadge";
 import { UserStatusBadge } from "../components/UserStatusBadge";
 import type { AdminUser, CreateAdminUserRequest, UpdateAdminUserRequest } from "../types/adminUsers.types";
+import type { DepartmentSummary } from "../../departments/types/departments.types";
 
 type RoleFilter = "ALL" | AppRole;
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+type DepartmentFilter = "ALL" | "UNASSIGNED" | string;
 
 function toErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) {
@@ -50,6 +54,9 @@ export function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [departmentFilter, setDepartmentFilter] = useState<DepartmentFilter>("ALL");
+  const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
+  const [isDepartmentsLoading, setIsDepartmentsLoading] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -63,6 +70,7 @@ export function AdminUsersPage() {
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [isTogglingUser, setIsTogglingUser] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isAssigningDepartment, setIsAssigningDepartment] = useState(false);
 
   useEffect(() => {
     if (!accessToken) {
@@ -70,9 +78,15 @@ export function AdminUsersPage() {
     }
 
     void loadUsers();
+    void loadDepartments();
   }, [accessToken]);
 
-  async function loadUsers(filters?: { search: string; roleFilter: RoleFilter; statusFilter: StatusFilter }) {
+  async function loadUsers(filters?: {
+    search: string;
+    roleFilter: RoleFilter;
+    statusFilter: StatusFilter;
+    departmentFilter: DepartmentFilter;
+  }) {
     if (!accessToken) {
       return;
     }
@@ -83,12 +97,14 @@ export function AdminUsersPage() {
     const resolvedSearch = filters?.search ?? search;
     const resolvedRoleFilter = filters?.roleFilter ?? roleFilter;
     const resolvedStatusFilter = filters?.statusFilter ?? statusFilter;
+    const resolvedDepartmentFilter = filters?.departmentFilter ?? departmentFilter;
 
     try {
       const response = await listAdminUsers(accessToken, {
         search: resolvedSearch,
         role: toRoleFilterValue(resolvedRoleFilter),
-        active: toStatusFilterValue(resolvedStatusFilter)
+        active: toStatusFilterValue(resolvedStatusFilter),
+        departmentId: resolvedDepartmentFilter === "ALL" ? undefined : resolvedDepartmentFilter
       });
       setUsers(response.users);
     } catch (error) {
@@ -99,6 +115,31 @@ export function AdminUsersPage() {
       setListError(toErrorMessage(error, "Unable to load user management data."));
     } finally {
       setIsListLoading(false);
+    }
+  }
+
+  async function loadDepartments() {
+    if (!accessToken) {
+      return;
+    }
+
+    setIsDepartmentsLoading(true);
+    try {
+      const response = await listAdminDepartments(accessToken);
+      setDepartments(response.departments.map((department) => ({
+        id: department.id,
+        code: department.code,
+        displayName: department.displayName,
+        active: department.active
+      })));
+    } catch (error) {
+      if (error instanceof DepartmentsApiError && error.status === 401) {
+        logout();
+        return;
+      }
+      setListError(toErrorMessage(error, "Unable to load departments."));
+    } finally {
+      setIsDepartmentsLoading(false);
     }
   }
 
@@ -230,6 +271,31 @@ export function AdminUsersPage() {
     }
   }
 
+  async function handleAssignSelectedUserDepartment(departmentId: string | null) {
+    if (!accessToken || !selectedUser) {
+      return;
+    }
+
+    setIsAssigningDepartment(true);
+    setDetailsError(null);
+    setDetailsActionMessage(null);
+
+    try {
+      const updated = await assignAdminUserDepartment(accessToken, selectedUser.id, departmentId);
+      setSelectedUser(updated);
+      setDetailsActionMessage("Department assignment updated.");
+      await loadUsers();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        logout();
+        return;
+      }
+      setDetailsError(toErrorMessage(error, "Unable to assign department."));
+    } finally {
+      setIsAssigningDepartment(false);
+    }
+  }
+
   function handleFilterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void loadUsers();
@@ -239,12 +305,14 @@ export function AdminUsersPage() {
     const reset = {
       search: "",
       roleFilter: "ALL" as RoleFilter,
-      statusFilter: "ALL" as StatusFilter
+      statusFilter: "ALL" as StatusFilter,
+      departmentFilter: "ALL" as DepartmentFilter
     };
 
     setSearch(reset.search);
     setRoleFilter(reset.roleFilter);
     setStatusFilter(reset.statusFilter);
+    setDepartmentFilter(reset.departmentFilter);
     void loadUsers(reset);
   }
 
@@ -260,7 +328,7 @@ export function AdminUsersPage() {
         </p>
       </header>
 
-      <form className="grid gap-3 rounded-2xl border border-oa-border bg-oa-surface/70 p-4 lg:grid-cols-[1fr_180px_180px_auto]" onSubmit={handleFilterSubmit}>
+      <form className="grid gap-3 rounded-2xl border border-oa-border bg-oa-surface/70 p-4 lg:grid-cols-[1fr_180px_180px_220px_auto]" onSubmit={handleFilterSubmit}>
         <input
           type="text"
           value={search}
@@ -287,6 +355,21 @@ export function AdminUsersPage() {
           <option value="ALL">All statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Inactive</option>
+        </select>
+
+        <select
+          value={departmentFilter}
+          onChange={(event) => setDepartmentFilter(event.target.value as DepartmentFilter)}
+          className="rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+          disabled={isDepartmentsLoading}
+        >
+          <option value="ALL">All departments</option>
+          <option value="UNASSIGNED">Unassigned only</option>
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {department.displayName} ({department.code}){department.active ? "" : " - INACTIVE"}
+            </option>
+          ))}
         </select>
 
         <div className="flex gap-2">
@@ -329,6 +412,7 @@ export function AdminUsersPage() {
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Department</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Action</th>
@@ -337,13 +421,13 @@ export function AdminUsersPage() {
           <tbody className="divide-y divide-oa-border/80">
             {isListLoading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-oa-muted">
+                <td colSpan={6} className="px-4 py-6 text-center text-oa-muted">
                   Loading users...
                 </td>
               </tr>
             ) : visibleUsers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-oa-muted">
+                <td colSpan={6} className="px-4 py-6 text-center text-oa-muted">
                   No users match the current filters.
                 </td>
               </tr>
@@ -357,6 +441,21 @@ export function AdminUsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-oa-muted">{managedUser.email}</td>
+                  <td className="px-4 py-3">
+                    {managedUser.department ? (
+                      <span
+                        className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                          managedUser.department.active
+                            ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+                            : "border-oa-danger/45 bg-oa-danger/15 text-oa-danger"
+                        }`}
+                      >
+                        {managedUser.department.displayName}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-oa-muted">Unassigned</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <UserRoleBadge role={managedUser.role} />
                   </td>
@@ -402,10 +501,12 @@ export function AdminUsersPage() {
         isSaving={isSavingUser}
         isToggling={isTogglingUser}
         isResettingPassword={isResettingPassword}
+        isAssigningDepartment={isAssigningDepartment}
+        departments={departments}
         errorMessage={detailsError}
         actionMessage={detailsActionMessage}
         onClose={() => {
-          if (isSavingUser || isTogglingUser || isResettingPassword) {
+          if (isSavingUser || isTogglingUser || isResettingPassword || isAssigningDepartment) {
             return;
           }
           setIsDetailsOpen(false);
@@ -416,6 +517,7 @@ export function AdminUsersPage() {
         onSave={handleSaveSelectedUser}
         onToggleActive={handleToggleSelectedUser}
         onResetPassword={handleResetSelectedUserPassword}
+        onAssignDepartment={handleAssignSelectedUserDepartment}
       />
     </section>
   );

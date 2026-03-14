@@ -1,5 +1,6 @@
 package com.officearcade.server.profile.dto;
 
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
 import java.util.List;
 
 public record ProfileMeResponse(
@@ -8,6 +9,7 @@ public record ProfileMeResponse(
         String email,
         String role,
         boolean accountEnabled,
+        DepartmentSummaryResponse department,
         int level,
         int xp,
         int respectPoints,

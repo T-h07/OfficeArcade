@@ -1,5 +1,6 @@
 package com.officearcade.server.profile;
 
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
 import com.officearcade.server.profile.dto.ProfileAvatarLayerResponse;
@@ -131,6 +132,7 @@ public class ProfileService {
                 user.email(),
                 user.role().name(),
                 user.enabled(),
+                toDepartmentSummary(user),
                 Math.max(profile.getLevel(), 1),
                 Math.max(profile.getXp(), 0),
                 Math.max(profile.getRespectPoints(), 0),
@@ -175,5 +177,17 @@ public class ProfileService {
         } catch (IllegalArgumentException | NullPointerException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authenticated user context.");
         }
+    }
+
+    private static DepartmentSummaryResponse toDepartmentSummary(UserAccount user) {
+        if (user.departmentId() == null) {
+            return null;
+        }
+        return new DepartmentSummaryResponse(
+                user.departmentId(),
+                user.departmentCode(),
+                user.departmentDisplayName(),
+                Boolean.TRUE.equals(user.departmentActive())
+        );
     }
 }

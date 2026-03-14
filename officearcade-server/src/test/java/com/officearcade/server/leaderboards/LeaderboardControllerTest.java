@@ -3,9 +3,12 @@ package com.officearcade.server.leaderboards;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.officearcade.server.admin.users.dto.AdminUserResponse;
+import com.officearcade.server.admin.users.dto.AssignUserDepartmentRequest;
 import com.officearcade.server.admin.users.dto.CreateAdminUserRequest;
 import com.officearcade.server.auth.dto.LoginRequest;
 import com.officearcade.server.auth.dto.LoginResponse;
+import com.officearcade.server.departments.dto.CreateDepartmentRequest;
+import com.officearcade.server.departments.dto.DepartmentResponse;
 import com.officearcade.server.identity.AppRole;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
@@ -101,6 +104,47 @@ class LeaderboardControllerTest {
                 .allMatch(entry -> entry.wins() + entry.losses() >= leaderboard.minimumCompletedMatches());
     }
 
+    @Test
+    void shouldFilterLeaderboardByDepartmentAndUnassignedScope() {
+        String adminToken = loginAndGetToken("admin@officearcade.local", "Admin@123");
+        String departmentId = createDepartment(adminToken, "LB_DEPT_" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+
+        TestUser inDepartment = createEmployeeUser(adminToken, "lb-department-member");
+        TestUser unassigned = createEmployeeUser(adminToken, "lb-unassigned-member");
+
+        setProfileStats(inDepartment.id(), 4, 420, 14, 11, 3, 120, 2);
+        setProfileStats(unassigned.id(), 4, 390, 13, 10, 3, 95, 3);
+        assignDepartment(adminToken, inDepartment.id(), departmentId);
+
+        String departmentUserToken = loginAndGetToken(inDepartment.email(), inDepartment.password());
+
+        ResponseEntity<LeaderboardResponse> departmentFilteredResponse = restTemplate.exchange(
+                baseUrl("/api/leaderboards?type=WINS&limit=10&departmentId=" + departmentId),
+                HttpMethod.GET,
+                new HttpEntity<>(authHeaders(departmentUserToken)),
+                LeaderboardResponse.class
+        );
+        assertThat(departmentFilteredResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(departmentFilteredResponse.getBody()).isNotNull();
+        assertThat(departmentFilteredResponse.getBody().entries()).isNotEmpty();
+        assertThat(departmentFilteredResponse.getBody().entries())
+                .allSatisfy(entry -> {
+                    assertThat(entry.department()).isNotNull();
+                    assertThat(entry.department().id()).isEqualTo(departmentId);
+                });
+
+        ResponseEntity<LeaderboardResponse> unassignedFilteredResponse = restTemplate.exchange(
+                baseUrl("/api/leaderboards?type=WINS&limit=10&departmentId=UNASSIGNED"),
+                HttpMethod.GET,
+                new HttpEntity<>(authHeaders(departmentUserToken)),
+                LeaderboardResponse.class
+        );
+        assertThat(unassignedFilteredResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(unassignedFilteredResponse.getBody()).isNotNull();
+        assertThat(unassignedFilteredResponse.getBody().entries())
+                .allMatch(entry -> entry.department() == null);
+    }
+
     private TestUser createEmployeeUser(String adminToken, String label) {
         String unique = label + "+" + UUID.randomUUID();
         String email = unique + "@officearcade.local";
@@ -140,6 +184,34 @@ class LeaderboardControllerTest {
         profile.setRespectPoints(Math.max(respect, 0));
         profile.setKarmaPoints(Math.max(karma, 0));
         playerProfileEntityRepository.save(profile);
+    }
+
+    private String createDepartment(String adminToken, String code) {
+        ResponseEntity<DepartmentResponse> createResponse = restTemplate.exchange(
+                baseUrl("/api/admin/departments"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        new CreateDepartmentRequest(code, "Leaderboard Department " + code, null),
+                        authHeaders(adminToken)
+                ),
+                DepartmentResponse.class
+        );
+        assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(createResponse.getBody()).isNotNull();
+        return createResponse.getBody().id();
+    }
+
+    private void assignDepartment(String adminToken, String userId, String departmentId) {
+        ResponseEntity<AdminUserResponse> response = restTemplate.exchange(
+                baseUrl("/api/admin/users/" + userId + "/assign-department"),
+                HttpMethod.POST,
+                new HttpEntity<>(new AssignUserDepartmentRequest(departmentId), authHeaders(adminToken)),
+                AdminUserResponse.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().department()).isNotNull();
+        assertThat(response.getBody().department().id()).isEqualTo(departmentId);
     }
 
     private String loginAndGetToken(String email, String password) {
@@ -182,7 +254,16 @@ class LeaderboardControllerTest {
             String userId,
             int wins,
             int losses,
-            boolean currentUser
+            boolean currentUser,
+            DepartmentSummary department
+    ) {
+    }
+
+    private record DepartmentSummary(
+            String id,
+            String code,
+            String displayName,
+            boolean active
     ) {
     }
 }

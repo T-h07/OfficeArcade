@@ -5,6 +5,7 @@ import com.officearcade.server.identity.AppRole;
 public record UserQuery(
         String search,
         AppRole role,
-        Boolean enabled
+        Boolean enabled,
+        String departmentFilter
 ) {
 }

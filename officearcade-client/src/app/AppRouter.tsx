@@ -5,6 +5,7 @@ import { RequireRole } from "../features/auth/RequireRole";
 import { SuspendedAccessGate } from "../features/auth/SuspendedAccessGate";
 import { AdminUsersPage } from "../features/admin-users/pages/AdminUsersPage";
 import { ChallengesPage } from "../features/challenges/pages/ChallengesPage";
+import { AdminDepartmentsPage } from "../features/departments/pages/AdminDepartmentsPage";
 import { AppShell } from "../features/layout/AppShell";
 import { LeaderboardsPage } from "../features/leaderboards/pages/LeaderboardsPage";
 import { AdminModerationPage } from "../features/moderation/pages/AdminModerationPage";
@@ -62,6 +63,14 @@ export function AppRouter() {
           element={
             <RequireRole allowedRoles={["ADMIN"]}>
               <AdminUsersPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/departments"
+          element={
+            <RequireRole allowedRoles={["ADMIN"]}>
+              <AdminDepartmentsPage />
             </RequireRole>
           }
         />

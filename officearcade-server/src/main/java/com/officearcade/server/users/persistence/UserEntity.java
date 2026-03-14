@@ -1,11 +1,15 @@
 package com.officearcade.server.users.persistence;
 
+import com.officearcade.server.departments.persistence.DepartmentEntity;
 import com.officearcade.server.identity.AppRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -47,6 +51,10 @@ public class UserEntity {
 
     @Column(name = "suspended_by_admin_id")
     private UUID suspendedByAdminId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private DepartmentEntity department;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -149,6 +157,14 @@ public class UserEntity {
 
     public void setSuspendedByAdminId(UUID suspendedByAdminId) {
         this.suspendedByAdminId = suspendedByAdminId;
+    }
+
+    public DepartmentEntity getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(DepartmentEntity department) {
+        this.department = department;
     }
 
     public Instant getCreatedAt() {

@@ -111,6 +111,17 @@ export function ProfileCustomizationPage() {
                   </span>
                   <span
                     className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                      profile.department?.active
+                        ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+                        : "border-oa-border bg-black/20 text-oa-muted"
+                    }`}
+                  >
+                    {profile.department
+                      ? `${profile.department.displayName} (${profile.department.code})`
+                      : "Unassigned Department"}
+                  </span>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
                       profile.accountEnabled
                         ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
                         : "border-oa-danger/45 bg-oa-danger/15 text-oa-danger"
@@ -149,6 +160,18 @@ export function ProfileCustomizationPage() {
                   <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Equipped Cosmetics</p>
                   <p className="mt-1 text-lg font-semibold text-oa-text">{profile.equippedCosmeticCount}</p>
                 </div>
+              </div>
+
+              <div className="mt-4 rounded-lg border border-oa-border bg-black/20 p-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Department Placement</p>
+                <p className="mt-1 text-sm text-oa-text">
+                  {profile.department
+                    ? `${profile.department.displayName} (${profile.department.code})`
+                    : "Not assigned to a department yet."}
+                </p>
+                {profile.department && !profile.department.active ? (
+                  <p className="mt-1 text-xs text-oa-danger">This department is currently inactive.</p>
+                ) : null}
               </div>
 
               <div className="mt-4 rounded-lg border border-oa-border bg-black/20 p-3">

@@ -57,9 +57,17 @@ export async function getLeaderboardTypes(token: string): Promise<LeaderboardTyp
 export async function getLeaderboard(
   token: string,
   type: LeaderboardType,
-  limit = 25
+  limit = 25,
+  departmentId?: string
 ): Promise<LeaderboardResponse> {
-  const response = await fetch(resolveUrl(`/api/leaderboards?type=${type}&limit=${limit}`), {
+  const query = new URLSearchParams();
+  query.set("type", type);
+  query.set("limit", String(limit));
+  if (departmentId && departmentId.trim().length > 0) {
+    query.set("departmentId", departmentId.trim());
+  }
+
+  const response = await fetch(resolveUrl(`/api/leaderboards?${query.toString()}`), {
     method: "GET",
     headers: authHeaders(token)
   });

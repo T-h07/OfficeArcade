@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT16 Implemented Scope
+## OA-PT17 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -157,6 +157,36 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - notifications center page with filter/read/read-all controls
   - user-scoped realtime notification topic updates for count/list refresh behavior
   - notification state is persisted and survives refresh/restart
+- Added departments and company segmentation foundation:
+  - new persisted department model (`departments`) with:
+    - code
+    - display name
+    - description
+    - active/inactive lifecycle
+  - one primary nullable department assignment per user via `users.department_id`
+  - admin department management APIs:
+    - `GET /api/admin/departments`
+    - `GET /api/admin/departments/{departmentId}`
+    - `POST /api/admin/departments`
+    - `PUT /api/admin/departments/{departmentId}`
+    - `POST /api/admin/departments/{departmentId}/activate`
+    - `POST /api/admin/departments/{departmentId}/deactivate`
+  - admin user assignment API:
+    - `POST /api/admin/users/{userId}/assign-department`
+  - department-aware user management:
+    - user list shows department badge/label
+    - user list supports department and unassigned filters
+    - user detail supports assignment and unassignment
+  - employee-visible department context:
+    - auth/me session payload includes department summary
+    - dashboard and profile surfaces include department placement
+  - leaderboard segmentation:
+    - company-wide view remains default
+    - filter by specific department or unassigned users
+    - leaderboard rows and top cards show user department context
+  - dedicated admin Departments page in client:
+    - list, search/filter, create, edit, activate/deactivate
+    - compact summary metrics including assigned-user counts
 
 ## Auth + Admin Scope (Current)
 
@@ -165,9 +195,11 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - Role-guarded shell (`ADMIN`, `EMPLOYEE`)
 - Admin user management:
   - list/search/filter
+  - department-aware list filters (`ALL`, specific department, `UNASSIGNED`)
   - create/edit users
   - activate/deactivate
   - reset password
+  - assign/unassign primary department
   - last-active-admin safety protection
 - Moderation user safety controls:
   - suspend/unsuspend workflow for admins
@@ -188,6 +220,17 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `suspended_at`
 - `suspension_note`
 - `suspended_by_admin_id` (nullable FK to `users`)
+- `department_id` (nullable FK to `departments`)
+- `created_at`
+- `updated_at`
+
+### `departments`
+
+- `id` (UUID, PK)
+- `code` (case-insensitive unique)
+- `display_name` (case-insensitive unique)
+- `description` (nullable)
+- `active`
 - `created_at`
 - `updated_at`
 
@@ -462,7 +505,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Karma leaderboard is intentionally ordered ascending (lower karma ranks higher).
 - API exposes current-user ranking context even if the user is outside the visible top list.
 
-## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits + Moderation + Notifications Notes (OA-PT16)
+## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits + Moderation + Notifications + Departments Notes (OA-PT17)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -499,6 +542,13 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Notification realtime updates are user-scoped over:
   - `/topic/notifications/{userId}`
 - Client notification views use realtime updates plus API refetch for authoritative list/count state.
+- Departments are persisted and lifecycle-managed via admin-only endpoints.
+- Inactive departments remain visible in admin management and historical user context.
+- Leaderboards support optional `departmentId` filter values:
+  - specific department UUID
+  - `UNASSIGNED`
+  - omitted/`ALL` for company-wide view
+- User assignment remains single-primary-department for OA-PT17 (nullable when unassigned).
 
 ## Docker Database Commands
 
@@ -592,7 +642,7 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 
 - Room chat and live presence orchestration
 - Additional game integrations beyond Connect Four and Trivia (UNO remains placeholder)
-- Department/tag modules
+- Team/location/division segmentation layers beyond primary department
 - Omnichannel notifications (email/SMS/push) and digest notification systems
 - Advanced avatar rendering/customization scene tooling
 - Public social profile directory/sharing flows
@@ -608,4 +658,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT17+` can expand notification preferences, department-aware segmentation, richer admin communication controls, and broader social gameplay modules on top of the OA-PT16 in-app notification baseline.
+`OA-PT18+` can expand notification preferences, team/location segmentation, department-aware reporting views, richer admin communication controls, and broader social gameplay modules on top of the OA-PT17 company segmentation baseline.

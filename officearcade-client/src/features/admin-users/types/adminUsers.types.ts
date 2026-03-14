@@ -1,4 +1,5 @@
 import type { AppRole } from "../../auth/auth.types";
+import type { DepartmentSummary } from "../../departments/types/departments.types";
 
 export type AdminUser = {
   id: string;
@@ -6,6 +7,7 @@ export type AdminUser = {
   displayName: string;
   role: AppRole;
   enabled: boolean;
+  department: DepartmentSummary | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -38,4 +40,5 @@ export type ListAdminUsersFilters = {
   search?: string;
   role?: AppRole;
   active?: boolean;
+  departmentId?: string;
 };

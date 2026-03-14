@@ -14,6 +14,10 @@ public record UserAccount(
         Instant suspendedAt,
         String suspensionNote,
         String suspendedByAdminId,
+        String departmentId,
+        String departmentCode,
+        String departmentDisplayName,
+        Boolean departmentActive,
         Instant createdAt,
         Instant updatedAt
 ) {

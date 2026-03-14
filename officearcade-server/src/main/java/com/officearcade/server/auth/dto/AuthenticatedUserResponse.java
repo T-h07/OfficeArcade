@@ -1,5 +1,7 @@
 package com.officearcade.server.auth.dto;
 
+import com.officearcade.server.departments.dto.DepartmentSummaryResponse;
+
 public record AuthenticatedUserResponse(
         String id,
         String email,
@@ -8,6 +10,7 @@ public record AuthenticatedUserResponse(
         boolean enabled,
         boolean suspended,
         String suspendedAt,
-        String suspensionNote
+        String suspensionNote,
+        DepartmentSummaryResponse department
 ) {
 }

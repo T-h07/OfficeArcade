@@ -1,4 +1,5 @@
 import type { AppRole } from "../../auth/auth.types";
+import type { DepartmentSummary } from "../../departments/types/departments.types";
 
 export type DashboardGameType = {
   code: string;
@@ -32,6 +33,7 @@ export type EmployeeDashboardResponse = {
   email: string;
   role: AppRole;
   accountEnabled: boolean;
+  department: DepartmentSummary | null;
   level: number;
   xp: number;
   respectPoints: number;
