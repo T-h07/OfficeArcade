@@ -9,5 +9,7 @@ public interface GameTypeEntityRepository extends JpaRepository<GameTypeEntity, 
 
     Optional<GameTypeEntity> findByCode(String code);
 
+    Optional<GameTypeEntity> findByCodeIgnoreCase(String code);
+
     List<GameTypeEntity> findAllByEnabledTrueOrderByDisplayNameAsc();
 }

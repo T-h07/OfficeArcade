@@ -8,6 +8,7 @@ import { AdminOverviewPage } from "../pages/AdminOverviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { ForbiddenPage } from "../pages/ForbiddenPage";
 import { LoginPage } from "../pages/LoginPage";
+import { PlayPage } from "../pages/PlayPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { SettingsPage } from "../pages/SettingsPage";
 
@@ -33,6 +34,7 @@ export function AppRouter() {
       >
         <Route index element={<Navigate to="/app/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="play" element={<PlayPage />} />
         <Route
           path="admin-overview"
           element={

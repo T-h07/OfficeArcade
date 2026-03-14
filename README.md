@@ -19,19 +19,32 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT05 Implemented Scope
+## OA-PT06 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
-- Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) on Dockerized PostgreSQL
-- Added employee dashboard backend aggregate endpoint:
-  - `GET /api/employee/dashboard` (authenticated, `ADMIN`/`EMPLOYEE`)
-  - returns persisted profile values and derived dashboard metrics
-- Added employee dashboard frontend module:
-  - KPI tiles (level/xp/respect/karma/games/wins/losses/win rate)
-  - level progress bar and XP-to-next-level display
-  - account summary + enabled game types + next-module summary section
-  - loading, error, and retry states
-- Added Flyway seed update for realistic local dashboard profile values
+- Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
+- Added persisted room/lobby domain (`rooms`, `room_members`) with Flyway migration `V4__add_room_lobby_schema.sql`
+- Added lobby backend APIs (authenticated):
+  - `GET /api/lobby/game-types`
+  - `GET /api/lobby/rooms`
+  - `GET /api/lobby/rooms/{roomId}`
+  - `GET /api/lobby/my-room`
+  - `POST /api/lobby/rooms`
+  - `POST /api/lobby/rooms/{roomId}/join`
+  - `POST /api/lobby/rooms/{roomId}/leave`
+  - `POST /api/lobby/rooms/{roomId}/close`
+- Added lobby/Play frontend module:
+  - host room form (game type, rounds, max players, public/private + password)
+  - room browser with join actions
+  - private-room password prompt
+  - current-room panel with members, leave, and host close action
+  - loading/error/success handling with persisted refetch flow
+- Added server-side room rules:
+  - one active room membership per user
+  - only enabled game types allowed
+  - private room password validation
+  - full-room join rejection
+  - host leave rule: room closes and memberships are cleared
 
 ## Auth + Admin Scope (Current)
 
@@ -81,6 +94,31 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `created_at`
 - `updated_at`
 
+### `rooms`
+
+- `id` (UUID, PK)
+- `host_user_id` (FK to `users`)
+- `game_type_id` (FK to `game_types`)
+- `room_name`
+- `is_private`
+- `password_hash` (nullable for public rooms)
+- `max_players`
+- `rounds`
+- `status` (`OPEN`, `FULL`, `CLOSED`)
+- `created_at`
+- `updated_at`
+
+### `room_members`
+
+- `id` (UUID, PK)
+- `room_id` (FK to `rooms`)
+- `user_id` (FK to `users`)
+- `member_role` (`HOST` or `MEMBER`)
+- `joined_at`
+- uniqueness rules enforce:
+  - no duplicate user in same room
+  - one active room membership per user
+
 ## Seeded Dev Credentials
 
 - `admin@officearcade.local` / `Admin@123` (role: `ADMIN`)
@@ -92,6 +130,13 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 
 - Seeded admin and employee profiles include non-zero progression values for dashboard testing.
 - Values are persisted in `player_profiles` and survive backend/client restarts.
+
+## Room/Lobby Notes (OA-PT06)
+
+- Room and membership state is persisted in PostgreSQL.
+- Default room list excludes `CLOSED` rooms.
+- Realtime updates are intentionally not implemented yet; client refresh/refetch is used after actions.
+- If host leaves a room, the room is closed and all members are removed.
 
 ## Docker Database Commands
 
@@ -182,8 +227,9 @@ $env:VITE_API_BASE_URL="http://localhost:18180"
 
 ## Intentionally Not Implemented Yet
 
-- Room/lobby management and multiplayer gameplay flows
-- WebSocket realtime infrastructure
+- WebSocket/STOMP realtime room synchronization
+- Room chat and live presence orchestration
+- Multiplayer turn/gameplay execution
 - Respect/Karma business workflows
 - Store/inventory ownership flows
 - Leaderboard systems
@@ -199,4 +245,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT06` will focus on room system and lobby foundation on top of the persisted auth/admin/dashboard baseline.
+`OA-PT07` will focus on realtime room infrastructure and live lobby synchronization.
