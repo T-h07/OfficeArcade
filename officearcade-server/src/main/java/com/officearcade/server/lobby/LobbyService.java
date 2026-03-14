@@ -2,6 +2,7 @@ package com.officearcade.server.lobby;
 
 import com.officearcade.server.catalog.persistence.GameTypeEntity;
 import com.officearcade.server.catalog.persistence.GameTypeEntityRepository;
+import com.officearcade.server.games.connectfour.ConnectFourGameService;
 import com.officearcade.server.lobby.dto.CreateLobbyRoomRequest;
 import com.officearcade.server.lobby.dto.JoinLobbyRoomRequest;
 import com.officearcade.server.lobby.dto.LobbyGameTypeResponse;
@@ -36,12 +37,15 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class LobbyService {
 
+    private static final String CONNECT_FOUR_CODE = "CONNECT_FOUR";
+
     private final RoomEntityRepository roomEntityRepository;
     private final RoomMemberEntityRepository roomMemberEntityRepository;
     private final GameTypeEntityRepository gameTypeEntityRepository;
     private final UserEntityRepository userEntityRepository;
     private final PasswordEncoder passwordEncoder;
     private final LobbyRealtimePublisher lobbyRealtimePublisher;
+    private final ConnectFourGameService connectFourGameService;
 
     public LobbyService(
             RoomEntityRepository roomEntityRepository,
@@ -49,7 +53,8 @@ public class LobbyService {
             GameTypeEntityRepository gameTypeEntityRepository,
             UserEntityRepository userEntityRepository,
             PasswordEncoder passwordEncoder,
-            LobbyRealtimePublisher lobbyRealtimePublisher
+            LobbyRealtimePublisher lobbyRealtimePublisher,
+            ConnectFourGameService connectFourGameService
     ) {
         this.roomEntityRepository = roomEntityRepository;
         this.roomMemberEntityRepository = roomMemberEntityRepository;
@@ -57,6 +62,7 @@ public class LobbyService {
         this.userEntityRepository = userEntityRepository;
         this.passwordEncoder = passwordEncoder;
         this.lobbyRealtimePublisher = lobbyRealtimePublisher;
+        this.connectFourGameService = connectFourGameService;
     }
 
     @Transactional(readOnly = true)
@@ -136,6 +142,7 @@ public class LobbyService {
         String normalizedRoomName = normalizeRoomName(request.roomName());
         boolean privateRoom = request.isPrivate();
         String passwordHash = resolveRoomPasswordHash(privateRoom, request.password());
+        int maxPlayers = resolveMaxPlayers(gameType, request.maxPlayers());
 
         RoomEntity room = new RoomEntity();
         room.setHostUser(hostUser);
@@ -143,7 +150,7 @@ public class LobbyService {
         room.setRoomName(normalizedRoomName);
         room.setPrivateRoom(privateRoom);
         room.setPasswordHash(passwordHash);
-        room.setMaxPlayers(request.maxPlayers());
+        room.setMaxPlayers(maxPlayers);
         room.setRounds(request.rounds());
         room.setStatus(RoomStatus.OPEN);
 
@@ -173,6 +180,7 @@ public class LobbyService {
         assertRoomCanBeJoined(room);
         assertRoomGameTypeEnabled(room);
         assertUserNotAlreadyInRoom(userId, roomUuid);
+        assertNoActiveConnectFourGame(room);
         validateJoinPassword(room, request.password());
 
         long currentMembers = roomMemberEntityRepository.countByRoom_Id(roomUuid);
@@ -213,6 +221,7 @@ public class LobbyService {
             roomMemberEntityRepository.deleteAllByRoom_Id(roomUuid);
             room.setStatus(RoomStatus.CLOSED);
             RoomEntity saved = roomEntityRepository.save(room);
+            connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
             lobbyRealtimePublisher.publishLobbyAndRoom(
                     LobbyRealtimeEventType.ROOM_CLOSED,
                     roomUuid,
@@ -222,6 +231,24 @@ public class LobbyService {
             return new LobbyRoomActionResponse(
                     "OK",
                     "Host left the room. Room is now closed.",
+                    closedRoom
+            );
+        }
+
+        if (isConnectFourRoom(room) && connectFourGameService.hasActiveGame(roomUuid)) {
+            roomMemberEntityRepository.deleteAllByRoom_Id(roomUuid);
+            room.setStatus(RoomStatus.CLOSED);
+            RoomEntity saved = roomEntityRepository.save(room);
+            connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
+            lobbyRealtimePublisher.publishLobbyAndRoom(
+                    LobbyRealtimeEventType.ROOM_CLOSED,
+                    roomUuid,
+                    currentUserId
+            );
+            LobbyRoomDetailResponse closedRoom = toDetail(saved, List.of());
+            return new LobbyRoomActionResponse(
+                    "OK",
+                    "A player left an active Connect Four game. Room is now closed.",
                     closedRoom
             );
         }
@@ -255,6 +282,7 @@ public class LobbyService {
         roomMemberEntityRepository.deleteAllByRoom_Id(roomUuid);
         room.setStatus(RoomStatus.CLOSED);
         RoomEntity saved = roomEntityRepository.save(room);
+        connectFourGameService.handleRoomClosed(roomUuid, currentUserId);
         lobbyRealtimePublisher.publishLobbyAndRoom(
                 LobbyRealtimeEventType.ROOM_CLOSED,
                 roomUuid,
@@ -288,6 +316,18 @@ public class LobbyService {
     private void assertRoomGameTypeEnabled(RoomEntity room) {
         if (!room.getGameType().isEnabled()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Room game type is disabled.");
+        }
+    }
+
+    private void assertNoActiveConnectFourGame(RoomEntity room) {
+        if (!isConnectFourRoom(room)) {
+            return;
+        }
+        if (connectFourGameService.hasActiveGame(room.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This Connect Four match is already in progress and not joinable."
+            );
         }
     }
 
@@ -365,6 +405,19 @@ public class LobbyService {
         }
 
         return gameType;
+    }
+
+    private int resolveMaxPlayers(GameTypeEntity gameType, int requestedMaxPlayers) {
+        if (!CONNECT_FOUR_CODE.equalsIgnoreCase(gameType.getCode())) {
+            return requestedMaxPlayers;
+        }
+        if (requestedMaxPlayers != 2) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "CONNECT_FOUR rooms must use maxPlayers = 2."
+            );
+        }
+        return requestedMaxPlayers;
     }
 
     private RoomEntity getRequiredRoom(UUID roomId) {
@@ -489,5 +542,9 @@ public class LobbyService {
         } catch (IllegalArgumentException | NullPointerException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Room id must be a valid UUID.");
         }
+    }
+
+    private static boolean isConnectFourRoom(RoomEntity room) {
+        return CONNECT_FOUR_CODE.equalsIgnoreCase(room.getGameType().getCode());
     }
 }

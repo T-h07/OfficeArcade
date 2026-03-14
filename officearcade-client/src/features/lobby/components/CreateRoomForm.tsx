@@ -22,6 +22,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const isConnectFour = gameTypeCode.toUpperCase() === "CONNECT_FOUR";
 
   useEffect(() => {
     if (!defaultGameType) {
@@ -33,6 +34,13 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
     }
     setGameTypeCode(defaultGameType);
   }, [defaultGameType, gameTypeCode, gameTypes]);
+
+  useEffect(() => {
+    if (!isConnectFour) {
+      return;
+    }
+    setMaxPlayers(2);
+  }, [isConnectFour]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,7 +62,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
     const created = await onSubmit({
       roomName: roomName.trim(),
       gameTypeCode,
-      maxPlayers,
+      maxPlayers: isConnectFour ? 2 : maxPlayers,
       rounds,
       isPrivate,
       password: isPrivate ? password.trim() : undefined
@@ -65,7 +73,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
     }
 
     setRoomName("Break Room");
-    setMaxPlayers(4);
+    setMaxPlayers(isConnectFour ? 2 : 4);
     setRounds(3);
     setIsPrivate(false);
     setPassword("");
@@ -128,9 +136,12 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
               className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
               min={2}
               max={8}
-              disabled={disabled}
+              disabled={disabled || isConnectFour}
               required
             />
+            {isConnectFour ? (
+              <p className="mt-1 text-xs text-oa-muted">Connect Four rooms are fixed to 2 players.</p>
+            ) : null}
           </div>
         </div>
 

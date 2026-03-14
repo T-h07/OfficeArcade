@@ -19,28 +19,27 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT07 Implemented Scope
+## OA-PT08 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
-- Preserved OA-PT06 persisted room/lobby domain and APIs
-- Added realtime backend infrastructure:
-  - STOMP WebSocket endpoint: `/ws`
-  - lobby topic: `/topic/lobby`
-  - room topic pattern: `/topic/rooms/{roomId}`
-  - JWT-authenticated STOMP connect/subscription handling
-  - centralized lobby event publishing after successful room mutations
-- Added realtime event propagation for room changes:
-  - room created
-  - room joined
-  - room left
-  - room closed (including host-leave close rule)
-- Added realtime frontend infrastructure:
-  - STOMP client connection lifecycle (connect/reconnect/degraded handling)
-  - lobby topic subscription for live room-list sync
-  - current-room topic subscription for live membership/status sync
-  - graceful fallback: HTTP flows still work if realtime is unavailable
-- Added Play page live-connection indicator and kept persisted server validations as source of truth
+- Preserved OA-PT06 persisted room/lobby domain and OA-PT07 realtime lobby sync
+- Added first playable game integration: **Connect Four**
+  - server-authoritative game state and turn validation
+  - room-linked game lifecycle (`WAITING`, `ACTIVE`, `FINISHED`)
+  - start-match endpoint for host when exactly 2 room members are present
+  - move endpoint with strict validation (membership, turn order, game status, column capacity)
+  - win detection (horizontal, vertical, both diagonals)
+  - draw detection when board is full
+  - no moves accepted after game completion
+- Added realtime Connect Four sync:
+  - room game topic pattern: `/topic/games/connect-four/{roomId}`
+  - live propagation for game started, move played, game finished, and game aborted
+  - frontend game panel auto-resyncs from authoritative backend state on realtime events
+- Added room/game safety rules for Connect Four:
+  - Connect Four rooms require `maxPlayers = 2`
+  - joining is blocked while an active Connect Four game exists
+  - if a player leaves during an active Connect Four match, room closes and game is aborted cleanly
 
 ## Auth + Admin Scope (Current)
 
@@ -115,6 +114,23 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - no duplicate user in same room
   - one active room membership per user
 
+### `connect_four_games`
+
+- `id` (UUID, PK)
+- `room_id` (UUID, unique FK to `rooms`)
+- `status` (`WAITING`, `ACTIVE`, `FINISHED`)
+- `player_one_user_id` (FK to `users`)
+- `player_two_user_id` (FK to `users`)
+- `current_turn_user_id` (FK to `users`)
+- `winner_user_id` (FK to `users`, nullable)
+- `board_state` (42-char encoded 7x6 board)
+- `move_count`
+- `is_draw`
+- `created_at`
+- `started_at`
+- `ended_at`
+- `updated_at`
+
 ## Seeded Dev Credentials
 
 - `admin@officearcade.local` / `Admin@123` (role: `ADMIN`)
@@ -127,7 +143,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Seeded admin and employee profiles include non-zero progression values for dashboard testing.
 - Values are persisted in `player_profiles` and survive backend/client restarts.
 
-## Room/Lobby Realtime Notes (OA-PT07)
+## Room/Lobby Realtime + Game Notes (OA-PT08)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -135,6 +151,9 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Client still refetches authoritative HTTP data after events/actions for consistency.
 - If host leaves a room, the room is closed and all members are removed.
 - WebSocket endpoint uses bearer token auth via STOMP CONNECT headers.
+- Connect Four rooms can transition into active gameplay once host starts with 2 players present.
+- Connect Four board state is synchronized live across clients via room-specific game topic events.
+- Gameplay correctness is server-authoritative; frontend never decides official outcomes.
 
 ## Docker Database Commands
 
@@ -227,8 +246,7 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 ## Intentionally Not Implemented Yet
 
 - Room chat and live presence orchestration
-- Multiplayer turn/gameplay execution
-- First actual game logic/integration
+- Additional game integrations (UNO/TRIVIA remain placeholders)
 - Respect/Karma business workflows
 - Store/inventory ownership flows
 - Leaderboard systems
@@ -244,4 +262,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT08` will focus on first game integration on top of persisted + realtime room infrastructure.
+`OA-PT09` will focus on Respect/Karma and post-match social systems on top of playable game flow.
