@@ -1,5 +1,11 @@
-export type ChallengeStatus = "PENDING" | "COMPLETED_CONFIRMED" | "REJECTED" | "EXPIRED";
-export type ChallengeMyRole = "OBLIGATED" | "BENEFICIARY";
+export type ChallengeStatus =
+  | "PENDING"
+  | "DISPUTED"
+  | "COMPLETED_CONFIRMED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "EXPIRED";
+export type ChallengeMyRole = "OBLIGATED" | "BENEFICIARY" | "ADMIN_REVIEW";
 
 export type ChallengeSummary = {
   id: string;
@@ -19,6 +25,10 @@ export type ChallengeSummary = {
   karmaPointsAwarded: number;
   createdAt: string;
   resolvedAt: string | null;
+  disputedAt: string | null;
+  disputeNote: string | null;
+  resolutionNote: string | null;
+  resolvedByAdminId: string | null;
 };
 
 export type ChallengeListResponse = {

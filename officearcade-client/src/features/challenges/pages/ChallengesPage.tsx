@@ -1,5 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { ReportUserModal } from "../../moderation/components/ReportUserModal";
+import { ModerationApiError, submitModerationReport } from "../../moderation/api/moderationApi";
+import type { CreateModerationReportRequest } from "../../moderation/types/moderation.types";
 import { useChallenges } from "../hooks/useChallenges";
 import type { ChallengeSummary } from "../types/challenges.types";
 
@@ -18,6 +21,9 @@ function statusBadgeClass(status: ChallengeSummary["status"]) {
   if (status === "PENDING") {
     return "border-amber-300/45 bg-amber-300/15 text-amber-100";
   }
+  if (status === "DISPUTED") {
+    return "border-sky-300/45 bg-sky-300/15 text-sky-100";
+  }
   if (status === "COMPLETED_CONFIRMED") {
     return "border-oa-accent/45 bg-oa-accent/15 text-oa-text";
   }
@@ -29,20 +35,50 @@ function statusBadgeClass(status: ChallengeSummary["status"]) {
 
 export function ChallengesPage() {
   const { accessToken, logout, user } = useAuth();
-  const { data, isLoading, isMutating, errorMessage, actionMessage, refresh, confirm, reject, clearActionMessage } =
+  const { data, isLoading, isMutating, errorMessage, actionMessage, refresh, confirm, reject, dispute, clearActionMessage } =
     useChallenges(accessToken, logout);
+  const [disputeNotes, setDisputeNotes] = useState<Record<string, string>>({});
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{
+    reportedUserId: string;
+    reportedDisplayName: string;
+    sourceRoomId: string;
+    sourceGameSessionId: string;
+    sourceChallengeId: string;
+  } | null>(null);
 
   const pending = useMemo(
-    () => (data?.challenges ?? []).filter((challenge) => challenge.status === "PENDING"),
+    () => (data?.challenges ?? []).filter((challenge) => challenge.status === "PENDING" || challenge.status === "DISPUTED"),
     [data?.challenges]
   );
   const history = useMemo(
-    () => (data?.challenges ?? []).filter((challenge) => challenge.status !== "PENDING"),
+    () => (data?.challenges ?? []).filter((challenge) => challenge.status !== "PENDING" && challenge.status !== "DISPUTED"),
     [data?.challenges]
   );
 
   if (!user) {
     return null;
+  }
+
+  async function handleSubmitChallengeReport(request: CreateModerationReportRequest) {
+    if (!accessToken || !reportTarget) {
+      return;
+    }
+    setIsReporting(true);
+    setReportError(null);
+    try {
+      await submitModerationReport(accessToken, request);
+      setReportTarget(null);
+    } catch (error) {
+      if (error instanceof ModerationApiError && error.status === 401) {
+        logout();
+        return;
+      }
+      setReportError(error instanceof Error ? error.message : "Unable to submit report.");
+    } finally {
+      setIsReporting(false);
+    }
   }
 
   return (
@@ -135,9 +171,25 @@ export function ChallengesPage() {
                   <p>
                     <span className="text-oa-text">My Role:</span> {challenge.myRole}
                   </p>
+                  {challenge.disputedAt ? (
+                    <p>
+                      <span className="text-oa-text">Disputed At:</span> {formatDateTime(challenge.disputedAt)}
+                    </p>
+                  ) : null}
                 </div>
 
-                {challenge.canResolve ? (
+                {challenge.disputeNote ? (
+                  <p className="mt-2 rounded-lg border border-sky-300/35 bg-sky-300/10 px-3 py-2 text-xs text-sky-100">
+                    Dispute note: {challenge.disputeNote}
+                  </p>
+                ) : null}
+                {challenge.resolutionNote ? (
+                  <p className="mt-2 rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-xs text-oa-text">
+                    Resolution note: {challenge.resolutionNote}
+                  </p>
+                ) : null}
+
+                {challenge.status === "PENDING" && challenge.canResolve ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -159,10 +211,79 @@ export function ChallengesPage() {
                     >
                       Reject / Not Fulfilled (+Karma)
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReportTarget({
+                          reportedUserId: challenge.obligatedUserId,
+                          reportedDisplayName: challenge.obligatedDisplayName,
+                          sourceRoomId: challenge.sourceRoomId,
+                          sourceGameSessionId: challenge.sourceGameSessionId,
+                          sourceChallengeId: challenge.id
+                        });
+                      }}
+                      className="rounded-md border border-oa-border bg-black/25 px-3 py-1.5 text-xs font-semibold text-oa-text transition-colors hover:border-oa-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isMutating}
+                    >
+                      Report Counterparty
+                    </button>
+                  </div>
+                ) : challenge.status === "PENDING" ? (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-oa-muted">
+                      Obligated users can escalate a pending challenge for moderation review if needed.
+                    </p>
+                    <textarea
+                      value={disputeNotes[challenge.id] ?? ""}
+                      onChange={(event) =>
+                        setDisputeNotes((previous) => ({
+                          ...previous,
+                          [challenge.id]: event.target.value.slice(0, 280)
+                        }))
+                      }
+                      rows={2}
+                      className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-xs text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+                      placeholder="Dispute note (optional)"
+                      disabled={isMutating}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void dispute(challenge.id, disputeNotes[challenge.id] ?? "");
+                        }}
+                        className="rounded-md border border-sky-300/45 bg-sky-300/15 px-3 py-1.5 text-xs font-semibold text-sky-100 transition-colors hover:bg-sky-300/25 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={isMutating}
+                      >
+                        Dispute for Admin Review
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const reportedUserId =
+                            challenge.myRole === "OBLIGATED" ? challenge.beneficiaryUserId : challenge.obligatedUserId;
+                          const reportedDisplayName =
+                            challenge.myRole === "OBLIGATED"
+                              ? challenge.beneficiaryDisplayName
+                              : challenge.obligatedDisplayName;
+                          setReportTarget({
+                            reportedUserId,
+                            reportedDisplayName,
+                            sourceRoomId: challenge.sourceRoomId,
+                            sourceGameSessionId: challenge.sourceGameSessionId,
+                            sourceChallengeId: challenge.id
+                          });
+                        }}
+                        className="rounded-md border border-oa-border bg-black/25 px-3 py-1.5 text-xs font-semibold text-oa-text transition-colors hover:border-oa-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={isMutating}
+                      >
+                        Report Counterparty
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-oa-muted">
-                    Waiting for beneficiary confirmation. Obligated users cannot self-confirm in OA-PT09.
+                    This challenge is currently in moderation review and cannot be resolved by participants.
                   </p>
                 )}
               </article>
@@ -195,11 +316,58 @@ export function ChallengesPage() {
                   <p>Karma Applied: {challenge.karmaPointsAwarded}</p>
                   <p>My Role: {challenge.myRole}</p>
                 </div>
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const reportedUserId =
+                        challenge.myRole === "OBLIGATED" ? challenge.beneficiaryUserId : challenge.obligatedUserId;
+                      const reportedDisplayName =
+                        challenge.myRole === "OBLIGATED" ? challenge.beneficiaryDisplayName : challenge.obligatedDisplayName;
+                      setReportTarget({
+                        reportedUserId,
+                        reportedDisplayName,
+                        sourceRoomId: challenge.sourceRoomId,
+                        sourceGameSessionId: challenge.sourceGameSessionId,
+                        sourceChallengeId: challenge.id
+                      });
+                    }}
+                    className="rounded-md border border-oa-border bg-black/25 px-3 py-1.5 text-xs font-semibold text-oa-text transition-colors hover:border-oa-accent/50"
+                  >
+                    Report Counterparty
+                  </button>
+                </div>
               </article>
             ))
           )}
         </div>
       </section>
+
+      <ReportUserModal
+        isOpen={reportTarget !== null}
+        reportedUserId={reportTarget?.reportedUserId ?? ""}
+        reportedDisplayName={reportTarget?.reportedDisplayName ?? ""}
+        context={
+          reportTarget
+            ? {
+                sourceRoomId: reportTarget.sourceRoomId,
+                sourceGameSessionId: reportTarget.sourceGameSessionId,
+                sourceChallengeId: reportTarget.sourceChallengeId,
+                defaultCategory: "CHALLENGE_DISPUTE"
+              }
+            : undefined
+        }
+        isSubmitting={isReporting}
+        errorMessage={reportError}
+        onClose={() => {
+          if (isReporting) {
+            return;
+          }
+          setReportError(null);
+          setReportTarget(null);
+        }}
+        onSubmit={handleSubmitChallengeReport}
+      />
     </section>
   );
 }

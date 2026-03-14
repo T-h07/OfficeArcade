@@ -36,6 +36,18 @@ public class UserEntity {
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
+    @Column(name = "suspended", nullable = false)
+    private boolean suspended;
+
+    @Column(name = "suspended_at")
+    private Instant suspendedAt;
+
+    @Column(name = "suspension_note", length = 240)
+    private String suspensionNote;
+
+    @Column(name = "suspended_by_admin_id")
+    private UUID suspendedByAdminId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -105,6 +117,38 @@ public class UserEntity {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
+    public Instant getSuspendedAt() {
+        return suspendedAt;
+    }
+
+    public void setSuspendedAt(Instant suspendedAt) {
+        this.suspendedAt = suspendedAt;
+    }
+
+    public String getSuspensionNote() {
+        return suspensionNote;
+    }
+
+    public void setSuspensionNote(String suspensionNote) {
+        this.suspensionNote = suspensionNote;
+    }
+
+    public UUID getSuspendedByAdminId() {
+        return suspendedByAdminId;
+    }
+
+    public void setSuspendedByAdminId(UUID suspendedByAdminId) {
+        this.suspendedByAdminId = suspendedByAdminId;
     }
 
     public Instant getCreatedAt() {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   confirmChallenge,
   ChallengesApiError,
+  disputeChallenge,
   listMyChallenges,
   rejectChallenge
 } from "../api/challengesApi";
@@ -16,6 +17,7 @@ type UseChallengesResult = {
   refresh: () => Promise<void>;
   confirm: (challengeId: string) => Promise<boolean>;
   reject: (challengeId: string) => Promise<boolean>;
+  dispute: (challengeId: string, note: string) => Promise<boolean>;
   clearActionMessage: () => void;
 };
 
@@ -118,6 +120,34 @@ export function useChallenges(accessToken: string | null, onUnauthorized: () => 
     [accessToken, onUnauthorized, refresh]
   );
 
+  const dispute = useCallback(
+    async (challengeId: string, note: string) => {
+      if (!accessToken) {
+        return false;
+      }
+      setIsMutating(true);
+      setErrorMessage(null);
+      setActionMessage(null);
+
+      try {
+        await disputeChallenge(accessToken, challengeId, note);
+        setActionMessage("Challenge moved to disputed review. Admin moderation can now resolve it.");
+        await refresh();
+        return true;
+      } catch (error) {
+        if (error instanceof ChallengesApiError && error.status === 401) {
+          onUnauthorized();
+          return false;
+        }
+        setErrorMessage(resolveErrorMessage(error, "Unable to dispute challenge."));
+        return false;
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [accessToken, onUnauthorized, refresh]
+  );
+
   return {
     data,
     isLoading,
@@ -127,6 +157,7 @@ export function useChallenges(accessToken: string | null, onUnauthorized: () => 
     refresh,
     confirm,
     reject,
+    dispute,
     clearActionMessage: () => setActionMessage(null)
   };
 }

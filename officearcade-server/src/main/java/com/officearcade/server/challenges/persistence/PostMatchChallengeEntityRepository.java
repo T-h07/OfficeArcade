@@ -34,4 +34,12 @@ public interface PostMatchChallengeEntityRepository extends JpaRepository<PostMa
               and (c.obligatedUser.id = :userId or c.beneficiaryUser.id = :userId)
             """)
     long countByStatusForUser(@Param("status") ChallengeStatus status, @Param("userId") UUID userId);
+
+    @Query("""
+            select c
+            from PostMatchChallengeEntity c
+            where c.status = :status
+            order by c.createdAt asc
+            """)
+    List<PostMatchChallengeEntity> findAllByStatusOrderByCreatedAtAsc(@Param("status") ChallengeStatus status);
 }

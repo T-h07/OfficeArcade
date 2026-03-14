@@ -63,6 +63,19 @@ public class PostMatchChallengeEntity {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
+    @Column(name = "disputed_at")
+    private Instant disputedAt;
+
+    @Column(name = "dispute_note", length = 280)
+    private String disputeNote;
+
+    @Column(name = "resolution_note", length = 280)
+    private String resolutionNote;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resolved_by_admin_id")
+    private UserEntity resolvedByAdmin;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
@@ -169,6 +182,38 @@ public class PostMatchChallengeEntity {
 
     public void setResolvedAt(Instant resolvedAt) {
         this.resolvedAt = resolvedAt;
+    }
+
+    public Instant getDisputedAt() {
+        return disputedAt;
+    }
+
+    public void setDisputedAt(Instant disputedAt) {
+        this.disputedAt = disputedAt;
+    }
+
+    public String getDisputeNote() {
+        return disputeNote;
+    }
+
+    public void setDisputeNote(String disputeNote) {
+        this.disputeNote = disputeNote;
+    }
+
+    public String getResolutionNote() {
+        return resolutionNote;
+    }
+
+    public void setResolutionNote(String resolutionNote) {
+        this.resolutionNote = resolutionNote;
+    }
+
+    public UserEntity getResolvedByAdmin() {
+        return resolvedByAdmin;
+    }
+
+    public void setResolvedByAdmin(UserEntity resolvedByAdmin) {
+        this.resolvedByAdmin = resolvedByAdmin;
     }
 
     public Instant getUpdatedAt() {

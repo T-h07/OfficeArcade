@@ -2,10 +2,12 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "../features/auth/RequireAuth";
 import { PublicOnlyRoute } from "../features/auth/PublicOnlyRoute";
 import { RequireRole } from "../features/auth/RequireRole";
+import { SuspendedAccessGate } from "../features/auth/SuspendedAccessGate";
 import { AdminUsersPage } from "../features/admin-users/pages/AdminUsersPage";
 import { ChallengesPage } from "../features/challenges/pages/ChallengesPage";
 import { AppShell } from "../features/layout/AppShell";
 import { LeaderboardsPage } from "../features/leaderboards/pages/LeaderboardsPage";
+import { AdminModerationPage } from "../features/moderation/pages/AdminModerationPage";
 import { InventoryPage } from "../features/store/pages/InventoryPage";
 import { StorePage } from "../features/store/pages/StorePage";
 import { AdminOverviewPage } from "../pages/AdminOverviewPage";
@@ -32,7 +34,9 @@ export function AppRouter() {
         path="/app"
         element={
           <RequireAuth>
-            <AppShell />
+            <SuspendedAccessGate>
+              <AppShell />
+            </SuspendedAccessGate>
           </RequireAuth>
         }
       >
@@ -56,6 +60,14 @@ export function AppRouter() {
           element={
             <RequireRole allowedRoles={["ADMIN"]}>
               <AdminUsersPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/moderation"
+          element={
+            <RequireRole allowedRoles={["ADMIN"]}>
+              <AdminModerationPage />
             </RequireRole>
           }
         />

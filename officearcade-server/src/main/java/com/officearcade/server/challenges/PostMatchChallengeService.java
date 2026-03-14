@@ -78,6 +78,10 @@ public class PostMatchChallengeService {
         challenge.setStatus(ChallengeStatus.PENDING);
         challenge.setRespectPointsAwarded(0);
         challenge.setKarmaPointsAwarded(0);
+        challenge.setDisputedAt(null);
+        challenge.setDisputeNote(null);
+        challenge.setResolutionNote(null);
+        challenge.setResolvedByAdmin(null);
         challenge.setResolvedAt(null);
 
         return Optional.of(postMatchChallengeEntityRepository.save(challenge));
@@ -98,7 +102,10 @@ public class PostMatchChallengeService {
                 .map(challenge -> toChallengeSummary(challenge, currentUserId))
                 .toList();
 
-        int pendingCount = (int) postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.PENDING, currentUserId);
+        int pendingCount = (int) (
+                postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.PENDING, currentUserId)
+                        + postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.DISPUTED, currentUserId)
+        );
         int resolvedCount = mapped.size() - pendingCount;
 
         return new ChallengeListResponse(mapped.size(), pendingCount, Math.max(0, resolvedCount), mapped);
@@ -126,10 +133,36 @@ public class PostMatchChallengeService {
         return resolveChallenge(currentUserIdText, challengeIdText, ChallengeStatus.REJECTED);
     }
 
+    @Transactional
+    public ChallengeSummaryResponse disputeChallenge(String currentUserIdText, String challengeIdText, String note) {
+        UUID currentUserId = parseUserId(currentUserIdText);
+        UUID challengeId = parseChallengeId(challengeIdText);
+
+        PostMatchChallengeEntity challenge = postMatchChallengeEntityRepository.findByIdForUpdate(challengeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Challenge not found: " + challengeId));
+
+        assertUserIsChallengeParticipant(challenge, currentUserId);
+        if (challenge.getStatus() != ChallengeStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only pending challenges can be disputed.");
+        }
+
+        challenge.setStatus(ChallengeStatus.DISPUTED);
+        challenge.setDisputedAt(Instant.now());
+        challenge.setDisputeNote(normalizeOptionalNote(note));
+        challenge.setResolutionNote(null);
+        challenge.setResolvedByAdmin(null);
+        challenge.setResolvedAt(null);
+
+        PostMatchChallengeEntity saved = postMatchChallengeEntityRepository.save(challenge);
+        return toChallengeSummary(saved, currentUserId);
+    }
+
     @Transactional(readOnly = true)
     public int getPendingChallengeCount(String currentUserIdText) {
         UUID userId = parseUserId(currentUserIdText);
-        return (int) postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.PENDING, userId);
+        long pending = postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.PENDING, userId);
+        long disputed = postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.DISPUTED, userId);
+        return (int) (pending + disputed);
     }
 
     @Transactional(readOnly = true)
@@ -137,8 +170,9 @@ public class PostMatchChallengeService {
         UUID userId = parseUserId(currentUserIdText);
         long confirmed = postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.COMPLETED_CONFIRMED, userId);
         long rejected = postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.REJECTED, userId);
+        long cancelled = postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.CANCELLED, userId);
         long expired = postMatchChallengeEntityRepository.countByStatusForUser(ChallengeStatus.EXPIRED, userId);
-        return (int) (confirmed + rejected + expired);
+        return (int) (confirmed + rejected + cancelled + expired);
     }
 
     @Transactional(readOnly = true)
@@ -173,6 +207,9 @@ public class PostMatchChallengeService {
         assertUserIsChallengeParticipant(challenge, currentUserId);
         assertUserIsBeneficiary(challenge, currentUserId);
 
+        if (challenge.getStatus() == ChallengeStatus.DISPUTED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Challenge is under moderation review.");
+        }
         if (challenge.getStatus() != ChallengeStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Challenge is already resolved.");
         }
@@ -194,6 +231,8 @@ public class PostMatchChallengeService {
 
         challenge.setStatus(resolutionStatus);
         challenge.setResolvedAt(Instant.now());
+        challenge.setResolvedByAdmin(null);
+        challenge.setResolutionNote(null);
         playerProfileEntityRepository.save(obligatedProfile);
         PostMatchChallengeEntity savedChallenge = postMatchChallengeEntityRepository.save(challenge);
 
@@ -219,7 +258,11 @@ public class PostMatchChallengeService {
                 challenge.getRespectPointsAwarded(),
                 challenge.getKarmaPointsAwarded(),
                 challenge.getCreatedAt().toString(),
-                nullableInstant(challenge.getResolvedAt())
+                nullableInstant(challenge.getResolvedAt()),
+                nullableInstant(challenge.getDisputedAt()),
+                challenge.getDisputeNote(),
+                challenge.getResolutionNote(),
+                nullableUserId(challenge.getResolvedByAdmin())
         );
     }
 
@@ -322,5 +365,23 @@ public class PostMatchChallengeService {
 
     private static String nullableInstant(Instant instant) {
         return instant == null ? null : instant.toString();
+    }
+
+    private static String nullableUserId(UserEntity user) {
+        return user == null ? null : user.getId().toString();
+    }
+
+    private static String normalizeOptionalNote(String note) {
+        if (note == null) {
+            return null;
+        }
+        String trimmed = note.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.length() > 280) {
+            return trimmed.substring(0, 280);
+        }
+        return trimmed;
     }
 }

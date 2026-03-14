@@ -6,6 +6,7 @@ type CurrentRoomPanelProps = {
   disabled: boolean;
   onLeaveRoom: (roomId: string) => void;
   onCloseRoom: (roomId: string) => void;
+  onReportMember: (member: { userId: string; displayName: string; roomId: string }) => void;
 };
 
 function formatJoinedAt(value: string) {
@@ -16,7 +17,14 @@ function formatJoinedAt(value: string) {
   return parsed.toLocaleTimeString();
 }
 
-export function CurrentRoomPanel({ room, currentUserId, disabled, onLeaveRoom, onCloseRoom }: CurrentRoomPanelProps) {
+export function CurrentRoomPanel({
+  room,
+  currentUserId,
+  disabled,
+  onLeaveRoom,
+  onCloseRoom,
+  onReportMember
+}: CurrentRoomPanelProps) {
   if (!room) {
     return (
       <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
@@ -65,9 +73,21 @@ export function CurrentRoomPanel({ room, currentUserId, disabled, onLeaveRoom, o
                 <p className="font-medium text-oa-text">{member.displayName}</p>
                 <p className="text-xs text-oa-muted">Joined {formatJoinedAt(member.joinedAt)}</p>
               </div>
-              <span className="rounded-full border border-oa-border bg-oa-surface-soft/65 px-2.5 py-1 text-xs text-oa-text">
-                {member.role}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full border border-oa-border bg-oa-surface-soft/65 px-2.5 py-1 text-xs text-oa-text">
+                  {member.role}
+                </span>
+                {member.userId !== currentUserId ? (
+                  <button
+                    type="button"
+                    onClick={() => onReportMember({ userId: member.userId, displayName: member.displayName, roomId: room.id })}
+                    className="rounded-md border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-65"
+                    disabled={disabled}
+                  >
+                    Report
+                  </button>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>

@@ -9,7 +9,7 @@ export type DashboardChallengeSummary = {
   id: string;
   challengeTypeCode: string;
   challengeTypeDisplayName: string;
-  status: "PENDING" | "COMPLETED_CONFIRMED" | "REJECTED" | "EXPIRED";
+  status: "PENDING" | "DISPUTED" | "COMPLETED_CONFIRMED" | "REJECTED" | "CANCELLED" | "EXPIRED";
   myRole: "OBLIGATED" | "BENEFICIARY";
   counterpartyDisplayName: string;
   createdAt: string;

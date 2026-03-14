@@ -5,6 +5,9 @@ public record AuthenticatedUserResponse(
         String email,
         String displayName,
         String role,
-        boolean enabled
+        boolean enabled,
+        boolean suspended,
+        String suspendedAt,
+        String suspensionNote
 ) {
 }

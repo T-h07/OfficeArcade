@@ -14,13 +14,25 @@ public class OfficeArcadePrincipal implements UserDetails {
     private final String displayName;
     private final AppRole role;
     private final boolean enabled;
+    private final boolean suspended;
+    private final String suspensionNote;
 
-    public OfficeArcadePrincipal(String id, String email, String displayName, AppRole role, boolean enabled) {
+    public OfficeArcadePrincipal(
+            String id,
+            String email,
+            String displayName,
+            AppRole role,
+            boolean enabled,
+            boolean suspended,
+            String suspensionNote
+    ) {
         this.id = id;
         this.email = email;
         this.displayName = displayName;
         this.role = role;
         this.enabled = enabled;
+        this.suspended = suspended;
+        this.suspensionNote = suspensionNote;
     }
 
     public String id() {
@@ -37,6 +49,14 @@ public class OfficeArcadePrincipal implements UserDetails {
 
     public AppRole role() {
         return role;
+    }
+
+    public boolean suspended() {
+        return suspended;
+    }
+
+    public String suspensionNote() {
+        return suspensionNote;
     }
 
     @Override

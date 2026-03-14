@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT14 Implemented Scope
+## OA-PT15 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -121,6 +121,26 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
     - dashboard daily usage + cooldown summary
     - lobby blocked state with reason, remaining time, and reset visibility
     - countdown UX tied to server-authoritative rechecks
+- Added moderation and safe workplace controls foundation:
+  - authenticated player reporting flow via `POST /api/reports` with structured categories
+  - report context support for room, game session, and challenge linkage
+  - admin moderation control plane under `/api/admin/moderation/*`
+    - report queue and report detail review (`OPEN`, `IN_REVIEW`, `RESOLVED`, `DISMISSED`)
+    - admin report actions: dismiss, note only, suspend user, unsuspend user
+    - challenge dispute queue + admin dispute resolution decisions
+    - moderation audit trail endpoint for traceable admin actions
+    - safe challenge policy read/update controls for enabled challenge types
+  - challenge dispute path added:
+    - participants can move pending challenges into `DISPUTED` review state
+    - admin can resolve disputed challenges as completed, rejected, or neutral canceled
+    - duplicate resolution protection remains enforced
+  - persisted user suspension state with explicit blocked behavior:
+    - suspended users can authenticate and receive account status
+    - suspended users are blocked from normal `/api/**` app interactions (except `/api/auth/me`)
+    - client shows a clear suspended account screen instead of normal app shell
+  - new admin moderation page in client:
+    - queue, detail actions, dispute review, policy toggles, and audit history
+  - lobby + challenge surfaces now include practical report actions for users
 
 ## Auth + Admin Scope (Current)
 
@@ -133,6 +153,9 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - activate/deactivate
   - reset password
   - last-active-admin safety protection
+- Moderation user safety controls:
+  - suspend/unsuspend workflow for admins
+  - suspended-user blocked-state handling in backend + frontend shell
 - Auth and admin management share the same persisted user source
 
 ## Core Schema Overview
@@ -145,6 +168,10 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `password_hash`
 - `role` (`ADMIN` or `EMPLOYEE`)
 - `enabled`
+- `suspended`
+- `suspended_at`
+- `suspension_note`
+- `suspended_by_admin_id` (nullable FK to `users`)
 - `created_at`
 - `updated_at`
 
@@ -294,12 +321,43 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `challenge_type_id` (FK to `challenge_types`)
 - `obligated_user_id` (FK to `users`)
 - `beneficiary_user_id` (FK to `users`)
-- `status` (`PENDING`, `COMPLETED_CONFIRMED`, `REJECTED`, `EXPIRED`)
+- `status` (`PENDING`, `DISPUTED`, `COMPLETED_CONFIRMED`, `REJECTED`, `CANCELLED`, `EXPIRED`)
 - `respect_points_awarded`
 - `karma_points_awarded`
 - `created_at`
+- `disputed_at`
+- `dispute_note`
 - `resolved_at`
+- `resolution_note`
+- `resolved_by_admin_id` (nullable FK to `users`)
 - `updated_at`
+
+### `moderation_reports`
+
+- `id` (UUID, PK)
+- `reporter_user_id` (FK to `users`)
+- `reported_user_id` (FK to `users`)
+- `category` (`UNSPORTSMANLIKE_BEHAVIOR`, `CHALLENGE_DISPUTE`, `HARASSMENT_OR_INAPPROPRIATE_BEHAVIOR`, `ABUSE_OF_SYSTEM`, `OTHER`)
+- `note` (short optional report note)
+- `status` (`OPEN`, `IN_REVIEW`, `RESOLVED`, `DISMISSED`)
+- `source_room_id` (nullable FK to `rooms`)
+- `source_game_session_id` (nullable FK to `connect_four_games`)
+- `source_challenge_id` (nullable FK to `post_match_challenges`)
+- `reviewed_by_admin_id` (nullable FK to `users`)
+- `resolution_note`
+- `created_at`
+- `updated_at`
+
+### `moderation_audit_log`
+
+- `id` (UUID, PK)
+- `admin_user_id` (FK to `users`)
+- `target_user_id` (nullable FK to `users`)
+- `action_type` (moderation action enum value)
+- `report_id` (nullable FK to `moderation_reports`)
+- `challenge_id` (nullable FK to `post_match_challenges`)
+- `note`
+- `created_at`
 
 ### `cosmetic_items`
 
@@ -370,7 +428,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Karma leaderboard is intentionally ordered ascending (lower karma ranks higher).
 - API exposes current-user ranking context even if the user is outside the visible top list.
 
-## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits Notes (OA-PT14)
+## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits + Moderation Notes (OA-PT15)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -398,6 +456,10 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Daily counts reset by server date in timezone `Europe/Berlin`.
 - Default PT14 policy is `5` completed games/day and `90` minutes cooldown per completed match.
 - Play-limit state survives refresh, app restart, and backend restart.
+- Moderation reports and moderation audit actions are persisted in PostgreSQL.
+- Suspended users are explicitly blocked from normal app APIs while suspension is active.
+- Challenge disputes can be escalated to `DISPUTED` and admin-resolved without duplicate point application.
+- Challenge safety policy toggles operate through persisted `challenge_types.enabled` controls.
 
 ## Docker Database Commands
 
@@ -506,4 +568,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT15+` can expand policy controls (admin-tunable cooldown/daily caps), scheduling options, broader game variety, and deeper social/progression systems on top of the OA-PT14 enforcement baseline.
+`OA-PT16+` can expand moderation notifications, departmental/admin grouping controls, richer policy administration UX, and broader gameplay/social modules on top of the OA-PT15 safety baseline.

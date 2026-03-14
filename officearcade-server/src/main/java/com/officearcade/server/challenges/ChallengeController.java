@@ -1,14 +1,17 @@
 package com.officearcade.server.challenges;
 
 import com.officearcade.server.challenges.dto.ChallengeListResponse;
+import com.officearcade.server.challenges.dto.ChallengeDisputeRequest;
 import com.officearcade.server.challenges.dto.ChallengeSummaryResponse;
 import com.officearcade.server.security.OfficeArcadePrincipal;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,6 +57,17 @@ public class ChallengeController {
             @PathVariable String challengeId
     ) {
         return postMatchChallengeService.rejectChallenge(getRequiredPrincipal(principal).id(), challengeId);
+    }
+
+    @PostMapping("/{challengeId}/dispute")
+    @ResponseStatus(HttpStatus.OK)
+    public ChallengeSummaryResponse disputeChallenge(
+            @AuthenticationPrincipal OfficeArcadePrincipal principal,
+            @PathVariable String challengeId,
+            @Valid @RequestBody(required = false) ChallengeDisputeRequest request
+    ) {
+        String note = request == null ? null : request.note();
+        return postMatchChallengeService.disputeChallenge(getRequiredPrincipal(principal).id(), challengeId, note);
     }
 
     private static OfficeArcadePrincipal getRequiredPrincipal(OfficeArcadePrincipal principal) {

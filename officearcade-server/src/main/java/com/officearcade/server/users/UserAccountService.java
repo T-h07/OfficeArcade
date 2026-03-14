@@ -194,6 +194,10 @@ public class UserAccountService {
                 userEntity.getPasswordHash(),
                 userEntity.getRole(),
                 userEntity.isEnabled(),
+                userEntity.isSuspended(),
+                userEntity.getSuspendedAt(),
+                userEntity.getSuspensionNote(),
+                userEntity.getSuspendedByAdminId() == null ? null : userEntity.getSuspendedByAdminId().toString(),
                 userEntity.getCreatedAt(),
                 userEntity.getUpdatedAt()
         );

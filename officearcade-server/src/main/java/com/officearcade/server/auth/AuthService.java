@@ -55,11 +55,18 @@ public class AuthService {
                 user.email(),
                 user.displayName(),
                 user.role().name(),
-                user.enabled()
+                user.enabled(),
+                user.suspended(),
+                nullableInstant(user.suspendedAt()),
+                user.suspensionNote()
         );
     }
 
     private static ResponseStatusException invalidCredentials() {
         return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials.");
+    }
+
+    private static String nullableInstant(java.time.Instant instant) {
+        return instant == null ? null : instant.toString();
     }
 }

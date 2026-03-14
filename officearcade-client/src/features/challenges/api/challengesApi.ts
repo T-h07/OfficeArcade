@@ -92,3 +92,20 @@ export async function rejectChallenge(token: string, challengeId: string): Promi
 
   return (await response.json()) as ChallengeSummary;
 }
+
+export async function disputeChallenge(token: string, challengeId: string, note: string): Promise<ChallengeSummary> {
+  const response = await fetch(resolveUrl(`/api/challenges/${challengeId}/dispute`), {
+    method: "POST",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ note })
+  });
+
+  if (!response.ok) {
+    await parseError(response, "Unable to dispute challenge.");
+  }
+
+  return (await response.json()) as ChallengeSummary;
+}

@@ -55,12 +55,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        if (user.suspended() && !isSuspendedAccessAllowed(request)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Account is currently suspended.");
+            return;
+        }
+
         OfficeArcadePrincipal principal = new OfficeArcadePrincipal(
                 user.id(),
                 user.email(),
                 user.displayName(),
                 user.role(),
-                user.enabled()
+                user.enabled(),
+                user.suspended(),
+                user.suspensionNote()
         );
 
         UsernamePasswordAuthenticationToken authenticationToken =
@@ -69,5 +76,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
         filterChain.doFilter(request, response);
+    }
+
+    private static boolean isSuspendedAccessAllowed(HttpServletRequest request) {
+        return "/api/auth/me".equals(request.getRequestURI());
     }
 }

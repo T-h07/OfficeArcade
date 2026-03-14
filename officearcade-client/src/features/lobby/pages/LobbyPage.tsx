@@ -3,6 +3,9 @@ import { ConnectFourPanel } from "../../connect-four/components/ConnectFourPanel
 import { usePlayLimits } from "../../play-limits/hooks/usePlayLimits";
 import { TriviaBattlePanel } from "../../trivia/components/TriviaBattlePanel";
 import { useAuth } from "../../auth/AuthContext";
+import { ReportUserModal } from "../../moderation/components/ReportUserModal";
+import { ModerationApiError, submitModerationReport } from "../../moderation/api/moderationApi";
+import type { CreateModerationReportRequest } from "../../moderation/types/moderation.types";
 import { CreateRoomForm } from "../components/CreateRoomForm";
 import { CurrentRoomPanel } from "../components/CurrentRoomPanel";
 import { JoinPrivateRoomModal } from "../components/JoinPrivateRoomModal";
@@ -43,6 +46,9 @@ function formatDuration(seconds: number) {
 export function LobbyPage() {
   const { accessToken, logout, user } = useAuth();
   const [privateJoinTarget, setPrivateJoinTarget] = useState<PrivateJoinTarget>(null);
+  const [reportTarget, setReportTarget] = useState<{ userId: string; displayName: string; roomId: string } | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
   const {
     summary: playLimits,
     isLoading: isPlayLimitsLoading,
@@ -101,6 +107,26 @@ export function LobbyPage() {
 
   async function handleCloseRoom(roomId: string) {
     await closeRoom(roomId);
+  }
+
+  async function handleSubmitRoomMemberReport(request: CreateModerationReportRequest) {
+    if (!accessToken) {
+      return;
+    }
+    setIsSubmittingReport(true);
+    setReportError(null);
+    try {
+      await submitModerationReport(accessToken, request);
+      setReportTarget(null);
+    } catch (error) {
+      if (error instanceof ModerationApiError && error.status === 401) {
+        logout();
+        return;
+      }
+      setReportError(error instanceof Error ? error.message : "Unable to submit report.");
+    } finally {
+      setIsSubmittingReport(false);
+    }
   }
 
   return (
@@ -206,6 +232,10 @@ export function LobbyPage() {
         disabled={isMutating}
         onLeaveRoom={handleLeaveRoom}
         onCloseRoom={handleCloseRoom}
+        onReportMember={(member) => {
+          setReportError(null);
+          setReportTarget(member);
+        }}
       />
 
       <ConnectFourPanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
@@ -266,6 +296,29 @@ export function LobbyPage() {
           }
           return joinRoom(privateJoinTarget.roomId, { password });
         }}
+      />
+
+      <ReportUserModal
+        isOpen={reportTarget !== null}
+        reportedUserId={reportTarget?.userId ?? ""}
+        reportedDisplayName={reportTarget?.displayName ?? ""}
+        context={
+          reportTarget
+            ? {
+                sourceRoomId: reportTarget.roomId
+              }
+            : undefined
+        }
+        isSubmitting={isSubmittingReport}
+        errorMessage={reportError}
+        onClose={() => {
+          if (isSubmittingReport) {
+            return;
+          }
+          setReportError(null);
+          setReportTarget(null);
+        }}
+        onSubmit={handleSubmitRoomMemberReport}
       />
     </section>
   );

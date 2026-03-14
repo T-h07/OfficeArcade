@@ -10,6 +10,10 @@ public record UserAccount(
         String passwordHash,
         AppRole role,
         boolean enabled,
+        boolean suspended,
+        Instant suspendedAt,
+        String suspensionNote,
+        String suspendedByAdminId,
         Instant createdAt,
         Instant updatedAt
 ) {

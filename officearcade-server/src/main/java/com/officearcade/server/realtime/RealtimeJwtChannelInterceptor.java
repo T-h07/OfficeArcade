@@ -64,13 +64,18 @@ public class RealtimeJwtChannelInterceptor implements ChannelInterceptor {
         if (user.isEmpty() || !user.get().enabled()) {
             throw new AccessDeniedException("Realtime connect user is unavailable.");
         }
+        if (user.get().suspended()) {
+            throw new AccessDeniedException("Realtime access is blocked while account is suspended.");
+        }
 
         OfficeArcadePrincipal principal = new OfficeArcadePrincipal(
                 user.get().id(),
                 user.get().email(),
                 user.get().displayName(),
                 user.get().role(),
-                user.get().enabled()
+                user.get().enabled(),
+                user.get().suspended(),
+                user.get().suspensionNote()
         );
 
         return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());

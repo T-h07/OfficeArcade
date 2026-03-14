@@ -47,7 +47,7 @@ export type ConnectFourChallengeSummary = {
   challengeId: string;
   challengeTypeCode: string;
   challengeTypeDisplayName: string;
-  status: "PENDING" | "COMPLETED_CONFIRMED" | "REJECTED" | "EXPIRED";
+  status: "PENDING" | "DISPUTED" | "COMPLETED_CONFIRMED" | "REJECTED" | "CANCELLED" | "EXPIRED";
   obligatedUserId: string;
   beneficiaryUserId: string;
   respectPointsAwarded: number;

@@ -6,6 +6,9 @@ export type AuthUser = {
   displayName: string;
   role: AppRole;
   enabled: boolean;
+  suspended: boolean;
+  suspendedAt: string | null;
+  suspensionNote: string | null;
 };
 
 export type LoginRequest = {

@@ -17,6 +17,10 @@ public record ChallengeSummaryResponse(
         int respectPointsAwarded,
         int karmaPointsAwarded,
         String createdAt,
-        String resolvedAt
+        String resolvedAt,
+        String disputedAt,
+        String disputeNote,
+        String resolutionNote,
+        String resolvedByAdminId
 ) {
 }
