@@ -33,13 +33,13 @@ function formatDuration(seconds: number) {
 function DashboardLoadingState() {
   return (
     <div className="space-y-4 animate-pulse">
-      <div className="h-24 rounded-2xl border border-oa-border bg-oa-surface/70" />
+      <div className="oa-panel h-24" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="h-24 rounded-xl border border-oa-border bg-oa-surface-soft/60" />
+          <div key={index} className="oa-panel-soft h-24" />
         ))}
       </div>
-      <div className="h-36 rounded-2xl border border-oa-border bg-oa-surface/70" />
+      <div className="oa-panel h-36" />
     </div>
   );
 }
@@ -60,25 +60,25 @@ export function EmployeeDashboardPage() {
   }
 
   return (
-    <section className="space-y-5">
-      <header className="rounded-2xl border border-oa-border bg-oa-surface/85 p-5">
-        <p className="text-xs uppercase tracking-[0.18em] text-oa-muted">Employee Home</p>
-        <h1 className="mt-2 text-2xl font-semibold text-oa-text">Dashboard</h1>
-        <p className="mt-2 text-sm text-oa-muted">
-          Overview of progression, account status, and upcoming OfficeArcade systems.
+    <section className="oa-page">
+      <header className="oa-hero">
+        <p className="oa-hero-kicker">Employee Home</p>
+        <h1 className="oa-hero-title">Dashboard</h1>
+        <p className="oa-hero-subtitle">
+          Progress, cooldown status, and account momentum.
         </p>
       </header>
 
       {isLoading ? <DashboardLoadingState /> : null}
 
       {!isLoading && errorMessage ? (
-        <div className="rounded-2xl border border-oa-danger/40 bg-oa-danger/10 p-5">
+        <div className="oa-alert oa-alert-danger">
           <h2 className="text-lg font-semibold text-oa-text">Dashboard unavailable</h2>
           <p className="mt-2 text-sm text-oa-muted">{errorMessage}</p>
           <button
             type="button"
             onClick={refresh}
-            className="mt-4 rounded-lg border border-oa-border bg-oa-surface px-4 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/55"
+            className="oa-btn oa-btn-secondary mt-4 px-4 py-2"
           >
             Retry
           </button>
@@ -86,38 +86,30 @@ export function EmployeeDashboardPage() {
       ) : null}
 
       {!isLoading && !errorMessage && dashboard ? (
-        <div className="space-y-5">
-          <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+        <div className="oa-page">
+          <section className="oa-panel">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm text-oa-muted">Welcome back</p>
                 <h2 className="mt-1 text-2xl font-semibold text-oa-text">{dashboard.displayName}</h2>
-                <p className="mt-2 text-sm text-oa-muted">
+                <p className="oa-hero-subtitle">
                   Data refreshed at {formatDateTime(dashboard.generatedAt)}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-oa-border bg-oa-surface-soft/70 px-3 py-1 text-xs font-medium text-oa-text">
+                <span className="oa-chip">
                   {dashboard.role}
                 </span>
                 <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                    dashboard.department?.active
-                      ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
-                      : "border-oa-border bg-black/20 text-oa-muted"
-                  }`}
+                  className={`oa-chip ${dashboard.department?.active ? "oa-chip-route" : ""}`}
                 >
                   {dashboard.department
                     ? `${dashboard.department.displayName} (${dashboard.department.code})`
                     : "Unassigned Department"}
                 </span>
                 <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                    dashboard.accountEnabled
-                      ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
-                      : "border-oa-danger/45 bg-oa-danger/15 text-oa-danger"
-                  }`}
+                  className={`oa-chip ${dashboard.accountEnabled ? "oa-chip-success" : "oa-chip-danger"}`}
                 >
                   {dashboard.accountEnabled ? "Active" : "Inactive"}
                 </span>
@@ -125,7 +117,7 @@ export function EmployeeDashboardPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+          <section className="oa-panel">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Play Limits</p>
@@ -134,7 +126,7 @@ export function EmployeeDashboardPage() {
               <button
                 type="button"
                 onClick={refreshPlayLimits}
-                className="rounded-lg border border-oa-border bg-black/20 px-3 py-1.5 text-xs text-oa-text transition-colors hover:border-oa-accent/45"
+                className="oa-btn oa-btn-ghost px-3 py-1.5 text-xs"
               >
                 Refresh Eligibility
               </button>
@@ -145,7 +137,7 @@ export function EmployeeDashboardPage() {
             ) : null}
 
             {!isPlayLimitsLoading && playLimitsError ? (
-              <p className="mt-3 rounded-lg border border-oa-danger/40 bg-oa-danger/10 px-3 py-2 text-sm text-oa-danger">
+              <p className="oa-alert oa-alert-danger mt-3">
                 {playLimitsError}
               </p>
             ) : null}
@@ -164,7 +156,7 @@ export function EmployeeDashboardPage() {
             ) : null}
 
             {!isPlayLimitsLoading && !playLimitsError && playLimits && !playLimits.canPlayNow ? (
-              <div className="mt-3 rounded-lg border border-amber-300/45 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+              <div className="oa-alert oa-alert-warning mt-3">
                 {playLimits.eligibilityReason === "COOLDOWN_ACTIVE" ? (
                   <p>
                     Cooldown active. Next game available in <span className="font-semibold">{formatDuration(cooldownRemainingSecondsLive)}</span>.
@@ -202,7 +194,7 @@ export function EmployeeDashboardPage() {
             />
           </section>
 
-          <section className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">
+          <section className="oa-panel">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-oa-text">Level Progress</h3>
@@ -223,7 +215,7 @@ export function EmployeeDashboardPage() {
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">
-            <article className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">
+            <article className="oa-panel">
               <h3 className="text-lg font-semibold text-oa-text">Account Summary</h3>
               <div className="mt-3 space-y-2 text-sm text-oa-muted">
                 <p>
@@ -265,9 +257,9 @@ export function EmployeeDashboardPage() {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">
+            <article className="oa-panel">
               <h3 className="text-lg font-semibold text-oa-text">Platform Summary</h3>
-              <p className="mt-2 text-sm text-oa-muted">
+              <p className="oa-hero-subtitle">
                 Game catalog and profile metrics now come from persisted PostgreSQL data.
               </p>
 
@@ -275,7 +267,7 @@ export function EmployeeDashboardPage() {
                 {dashboard.enabledGameTypes.map((gameType) => (
                   <span
                     key={gameType.code}
-                    className="rounded-full border border-oa-border bg-oa-surface-soft/70 px-3 py-1 text-xs text-oa-text"
+                    className="oa-chip"
                   >
                     {gameType.displayName}
                   </span>
@@ -283,12 +275,12 @@ export function EmployeeDashboardPage() {
               </div>
 
               <p className="mt-4 text-sm text-oa-muted">
-                Respect also powers cosmetic purchases in OA-PT10. Karma remains non-currency and does not alter gameplay fairness.
+                Respect drives cosmetics. Karma stays non-currency and fairness-safe.
               </p>
             </article>
           </section>
 
-          <section className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">
+          <section className="oa-panel">
             <h3 className="text-lg font-semibold text-oa-text">Equipped Cosmetic Loadout</h3>
             <p className="mt-1 text-sm text-oa-muted">
               Persisted equipped cosmetics from your inventory profile.
@@ -296,14 +288,14 @@ export function EmployeeDashboardPage() {
 
             <div className="mt-3 space-y-2">
               {dashboard.equippedCosmetics.length === 0 ? (
-                <p className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted">
+                <p className="oa-empty-state">
                   No cosmetics equipped yet. Visit Store and Inventory to customize your loadout.
                 </p>
               ) : (
                 dashboard.equippedCosmetics.map((cosmetic) => (
                   <article
                     key={cosmetic.cosmeticItemId}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm"
+                    className="flex flex-wrap items-center justify-between gap-3 oa-panel-soft px-3 py-2 text-sm"
                   >
                     <div>
                       <p className="font-medium text-oa-text">{cosmetic.displayName}</p>
@@ -321,7 +313,7 @@ export function EmployeeDashboardPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">
+          <section className="oa-panel">
             <h3 className="text-lg font-semibold text-oa-text">Recent Challenge Activity</h3>
             <p className="mt-1 text-sm text-oa-muted">
               Post-match challenge history tied to completed Connect Four games.
@@ -329,14 +321,14 @@ export function EmployeeDashboardPage() {
 
             <div className="mt-3 space-y-2">
               {dashboard.recentChallenges.length === 0 ? (
-                <p className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted">
+                <p className="oa-empty-state">
                   No challenge activity yet.
                 </p>
               ) : (
                 dashboard.recentChallenges.map((challenge) => (
                   <article
                     key={challenge.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm"
+                    className="flex flex-wrap items-center justify-between gap-3 oa-panel-soft px-3 py-2 text-sm"
                   >
                     <div>
                       <p className="font-medium text-oa-text">{challenge.challengeTypeDisplayName}</p>
@@ -358,3 +350,4 @@ export function EmployeeDashboardPage() {
     </section>
   );
 }
+

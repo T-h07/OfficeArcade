@@ -19,18 +19,18 @@ function formatDateTime(value: string | null) {
 
 function statusBadgeClass(status: ChallengeSummary["status"]) {
   if (status === "PENDING") {
-    return "border-amber-300/45 bg-amber-300/15 text-amber-100";
+    return "oa-chip-warning";
   }
   if (status === "DISPUTED") {
-    return "border-sky-300/45 bg-sky-300/15 text-sky-100";
+    return "oa-chip-info";
   }
   if (status === "COMPLETED_CONFIRMED") {
-    return "border-oa-accent/45 bg-oa-accent/15 text-oa-text";
+    return "oa-chip-success";
   }
   if (status === "REJECTED") {
-    return "border-oa-danger/45 bg-oa-danger/15 text-oa-danger";
+    return "oa-chip-danger";
   }
-  return "border-oa-border bg-black/25 text-oa-muted";
+  return "";
 }
 
 export function ChallengesPage() {
@@ -82,28 +82,28 @@ export function ChallengesPage() {
   }
 
   return (
-    <section className="space-y-5">
-      <header className="rounded-2xl border border-oa-border bg-oa-surface/85 p-5">
-        <p className="text-xs uppercase tracking-[0.18em] text-oa-muted">Reputation Layer</p>
-        <h1 className="mt-2 text-2xl font-semibold text-oa-text">Respect & Karma Challenges</h1>
-        <p className="mt-2 text-sm text-oa-muted">
-          Safe post-match obligations generated from completed Connect Four results.
+    <section className="oa-page">
+      <header className="oa-hero">
+        <p className="oa-hero-kicker">Reputation Layer</p>
+        <h1 className="oa-hero-title">Respect & Karma Challenges</h1>
+        <p className="oa-hero-subtitle">
+          Review challenge outcomes, confirm completions, or escalate disputes.
         </p>
       </header>
 
       {errorMessage ? (
-        <div className="rounded-xl border border-oa-danger/45 bg-oa-danger/10 px-4 py-3 text-sm text-oa-danger">
+        <div className="oa-alert oa-alert-danger">
           {errorMessage}
         </div>
       ) : null}
 
       {actionMessage ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-oa-accent/45 bg-oa-accent/10 px-4 py-3">
+        <div className="oa-alert oa-alert-success flex items-center justify-between gap-3">
           <p className="text-sm text-oa-text">{actionMessage}</p>
           <button
             type="button"
             onClick={clearActionMessage}
-            className="rounded-md border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted transition-colors hover:border-oa-accent/45 hover:text-oa-text"
+            className="oa-btn oa-btn-ghost px-2.5 py-1 text-xs"
           >
             Dismiss
           </button>
@@ -111,21 +111,21 @@ export function ChallengesPage() {
       ) : null}
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <article className="rounded-xl border border-oa-border bg-oa-surface/70 p-4">
+        <article className="oa-kpi-card">
           <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Total</p>
           <p className="mt-2 text-2xl font-semibold text-oa-text">{data?.totalCount ?? 0}</p>
         </article>
-        <article className="rounded-xl border border-oa-border bg-oa-surface/70 p-4">
+        <article className="oa-kpi-card">
           <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Pending</p>
           <p className="mt-2 text-2xl font-semibold text-amber-100">{data?.pendingCount ?? 0}</p>
         </article>
-        <article className="rounded-xl border border-oa-border bg-oa-surface/70 p-4">
+        <article className="oa-kpi-card">
           <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Resolved</p>
           <p className="mt-2 text-2xl font-semibold text-oa-text">{data?.resolvedCount ?? 0}</p>
         </article>
       </section>
 
-      <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+      <section className="oa-panel">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-oa-text">Pending Challenges</h2>
           <button
@@ -133,7 +133,7 @@ export function ChallengesPage() {
             onClick={() => {
               void refresh();
             }}
-            className="rounded-md border border-oa-border bg-black/20 px-3 py-1.5 text-xs text-oa-text transition-colors hover:border-oa-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="oa-btn oa-btn-secondary px-3 py-1.5 text-xs"
             disabled={isLoading || isMutating}
           >
             {isLoading ? "Refreshing..." : "Refresh"}
@@ -142,18 +142,18 @@ export function ChallengesPage() {
 
         <div className="mt-3 space-y-3">
           {pending.length === 0 ? (
-            <p className="rounded-lg border border-oa-border bg-black/20 px-4 py-3 text-sm text-oa-muted">
+            <p className="oa-empty-state">
               No pending challenges for your account right now.
             </p>
           ) : (
             pending.map((challenge) => (
-              <article key={challenge.id} className="rounded-xl border border-oa-border bg-black/20 p-4">
+              <article key={challenge.id} className="oa-action-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-oa-text">{challenge.challengeTypeDisplayName}</h3>
                     <p className="mt-1 text-sm text-oa-muted">{challenge.challengeTypeDescription}</p>
                   </div>
-                  <span className={`rounded-full border px-2.5 py-1 text-xs ${statusBadgeClass(challenge.status)}`}>
+                  <span className={`oa-chip ${statusBadgeClass(challenge.status)}`}>
                     {challenge.status}
                   </span>
                 </div>
@@ -196,7 +196,7 @@ export function ChallengesPage() {
                       onClick={() => {
                         void confirm(challenge.id);
                       }}
-                      className="rounded-md border border-oa-accent/50 bg-oa-accent/20 px-3 py-1.5 text-xs font-semibold text-oa-text transition-colors hover:bg-oa-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="oa-btn oa-btn-primary px-3 py-1.5 text-xs"
                       disabled={isMutating}
                     >
                       Confirm Completed (+Respect)
@@ -206,7 +206,7 @@ export function ChallengesPage() {
                       onClick={() => {
                         void reject(challenge.id);
                       }}
-                      className="rounded-md border border-oa-danger/45 bg-oa-danger/15 px-3 py-1.5 text-xs font-semibold text-oa-danger transition-colors hover:bg-oa-danger/25 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="oa-btn oa-btn-danger px-3 py-1.5 text-xs"
                       disabled={isMutating}
                     >
                       Reject / Not Fulfilled (+Karma)
@@ -222,7 +222,7 @@ export function ChallengesPage() {
                           sourceChallengeId: challenge.id
                         });
                       }}
-                      className="rounded-md border border-oa-border bg-black/25 px-3 py-1.5 text-xs font-semibold text-oa-text transition-colors hover:border-oa-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="oa-btn oa-btn-ghost px-3 py-1.5 text-xs"
                       disabled={isMutating}
                     >
                       Report Counterparty
@@ -242,7 +242,7 @@ export function ChallengesPage() {
                         }))
                       }
                       rows={2}
-                      className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-xs text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+                      className="oa-textarea text-xs"
                       placeholder="Dispute note (optional)"
                       disabled={isMutating}
                     />
@@ -252,7 +252,7 @@ export function ChallengesPage() {
                         onClick={() => {
                           void dispute(challenge.id, disputeNotes[challenge.id] ?? "");
                         }}
-                        className="rounded-md border border-sky-300/45 bg-sky-300/15 px-3 py-1.5 text-xs font-semibold text-sky-100 transition-colors hover:bg-sky-300/25 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="oa-btn oa-btn-secondary px-3 py-1.5 text-xs"
                         disabled={isMutating}
                       >
                         Dispute for Admin Review
@@ -274,7 +274,7 @@ export function ChallengesPage() {
                             sourceChallengeId: challenge.id
                           });
                         }}
-                        className="rounded-md border border-oa-border bg-black/25 px-3 py-1.5 text-xs font-semibold text-oa-text transition-colors hover:border-oa-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="oa-btn oa-btn-ghost px-3 py-1.5 text-xs"
                         disabled={isMutating}
                       >
                         Report Counterparty
@@ -292,19 +292,19 @@ export function ChallengesPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+      <section className="oa-panel">
         <h2 className="text-lg font-semibold text-oa-text">Resolved History</h2>
         <div className="mt-3 space-y-3">
           {history.length === 0 ? (
-            <p className="rounded-lg border border-oa-border bg-black/20 px-4 py-3 text-sm text-oa-muted">
+            <p className="oa-empty-state">
               No resolved challenges yet.
             </p>
           ) : (
             history.map((challenge) => (
-              <article key={challenge.id} className="rounded-xl border border-oa-border bg-black/20 p-4">
+              <article key={challenge.id} className="oa-action-card">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium text-oa-text">{challenge.challengeTypeDisplayName}</p>
-                  <span className={`rounded-full border px-2.5 py-1 text-xs ${statusBadgeClass(challenge.status)}`}>
+                  <span className={`oa-chip ${statusBadgeClass(challenge.status)}`}>
                     {challenge.status}
                   </span>
                 </div>
@@ -332,7 +332,7 @@ export function ChallengesPage() {
                         sourceChallengeId: challenge.id
                       });
                     }}
-                    className="rounded-md border border-oa-border bg-black/25 px-3 py-1.5 text-xs font-semibold text-oa-text transition-colors hover:border-oa-accent/50"
+                    className="oa-btn oa-btn-ghost px-3 py-1.5 text-xs"
                   >
                     Report Counterparty
                   </button>

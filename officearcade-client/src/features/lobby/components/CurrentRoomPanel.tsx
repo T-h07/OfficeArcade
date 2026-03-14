@@ -27,7 +27,7 @@ export function CurrentRoomPanel({
 }: CurrentRoomPanelProps) {
   if (!room) {
     return (
-      <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+      <section className="oa-panel">
         <h2 className="text-lg font-semibold text-oa-text">Your Current Room</h2>
         <p className="mt-2 text-sm text-oa-muted">
           You are not currently in a room. Create a room or join an available one.
@@ -39,7 +39,7 @@ export function CurrentRoomPanel({
   const isHost = room.hostUserId === currentUserId;
 
   return (
-    <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+    <section className="oa-panel">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-oa-text">Your Current Room</h2>
@@ -49,39 +49,39 @@ export function CurrentRoomPanel({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-oa-border bg-black/20 px-2.5 py-1 text-xs text-oa-text">
+          <span className="oa-chip">
             {room.status}
           </span>
-          <span className="rounded-full border border-oa-border bg-black/20 px-2.5 py-1 text-xs text-oa-text">
+          <span className="oa-chip">
             {room.currentPlayers}/{room.maxPlayers} players
           </span>
-          <span className="rounded-full border border-oa-border bg-black/20 px-2.5 py-1 text-xs text-oa-text">
+          <span className="oa-chip">
             {room.rounds} rounds
           </span>
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-oa-border bg-black/20 p-4">
+      <div className="oa-panel-soft mt-4">
         <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Members</p>
         <ul className="mt-2 space-y-2">
           {room.members.map((member) => (
             <li
               key={member.userId}
-              className="flex items-center justify-between rounded-lg border border-oa-border bg-black/25 px-3 py-2 text-sm"
+              className="oa-action-card flex items-center justify-between px-3 py-2 text-sm"
             >
               <div>
                 <p className="font-medium text-oa-text">{member.displayName}</p>
                 <p className="text-xs text-oa-muted">Joined {formatJoinedAt(member.joinedAt)}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full border border-oa-border bg-oa-surface-soft/65 px-2.5 py-1 text-xs text-oa-text">
+                <span className="oa-chip">
                   {member.role}
                 </span>
                 {member.userId !== currentUserId ? (
                   <button
                     type="button"
                     onClick={() => onReportMember({ userId: member.userId, displayName: member.displayName, roomId: room.id })}
-                    className="rounded-md border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-65"
+                    className="oa-btn oa-btn-ghost px-2.5 py-1 text-xs"
                     disabled={disabled}
                   >
                     Report
@@ -97,7 +97,7 @@ export function CurrentRoomPanel({
         <button
           type="button"
           onClick={() => onLeaveRoom(room.id)}
-          className="rounded-lg border border-oa-border bg-black/20 px-4 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-65"
+          className="oa-btn oa-btn-secondary px-4 py-2"
           disabled={disabled}
         >
           Leave Room
@@ -106,7 +106,7 @@ export function CurrentRoomPanel({
           <button
             type="button"
             onClick={() => onCloseRoom(room.id)}
-            className="rounded-lg border border-oa-danger/45 bg-oa-danger/15 px-4 py-2 text-sm text-oa-danger transition-colors hover:bg-oa-danger/25 disabled:cursor-not-allowed disabled:opacity-65"
+            className="oa-btn oa-btn-danger px-4 py-2"
             disabled={disabled}
           >
             Close Room
@@ -116,7 +116,7 @@ export function CurrentRoomPanel({
 
       {isHost ? (
         <p className="mt-3 text-xs text-oa-muted">
-          Host rule for OA-PT06: if the host leaves, the room closes and member list is cleared.
+          Host rule: leaving as host closes the room for everyone.
         </p>
       ) : null}
     </section>

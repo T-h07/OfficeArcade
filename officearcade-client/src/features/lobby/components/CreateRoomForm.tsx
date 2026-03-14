@@ -94,9 +94,9 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
   }
 
   return (
-    <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+    <section className="oa-panel">
       <h2 className="text-lg font-semibold text-oa-text">Host a Room</h2>
-      <p className="mt-1 text-sm text-oa-muted">Create a persisted lobby room for short office game sessions.</p>
+      <p className="mt-1 text-sm text-oa-muted">Spin up a match room for a quick session.</p>
 
       <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
         <div>
@@ -108,7 +108,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
             type="text"
             value={roomName}
             onChange={(event) => setRoomName(event.target.value)}
-            className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
+            className="oa-input"
             placeholder="Friday Break Match"
             minLength={3}
             maxLength={80}
@@ -126,7 +126,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
               id="game-type"
               value={gameTypeCode}
               onChange={(event) => setGameTypeCode(event.target.value)}
-              className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
+              className="oa-select"
               disabled={disabled || gameTypes.length === 0}
               required
             >
@@ -147,7 +147,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
               type="number"
               value={maxPlayers}
               onChange={(event) => setMaxPlayers(Number(event.target.value))}
-              className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
+              className="oa-input"
               min={2}
               max={isUnoGame ? 4 : 8}
               disabled={disabled || isTwoPlayerLockedGame}
@@ -172,7 +172,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
               type="number"
               value={rounds}
               onChange={(event) => setRounds(Number(event.target.value))}
-              className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
+              className="oa-input"
               min={1}
               max={10}
               disabled={disabled}
@@ -180,16 +180,16 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
             />
           </div>
 
-          <div className="rounded-lg border border-oa-border bg-black/20 px-3 py-2">
+          <div className="oa-panel-soft px-3 py-2">
             <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Visibility</p>
             <div className="mt-2 flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsPrivate(false)}
-                className={`rounded-md px-3 py-1 text-xs ${
+                className={`oa-btn px-3 py-1 text-xs ${
                   !isPrivate
-                    ? "border border-oa-accent/55 bg-oa-accent/20 text-oa-text"
-                    : "border border-oa-border bg-black/20 text-oa-muted"
+                    ? "oa-btn-primary"
+                    : "oa-btn-ghost"
                 }`}
                 disabled={disabled}
               >
@@ -198,10 +198,10 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
               <button
                 type="button"
                 onClick={() => setIsPrivate(true)}
-                className={`rounded-md px-3 py-1 text-xs ${
+                className={`oa-btn px-3 py-1 text-xs ${
                   isPrivate
-                    ? "border border-oa-accent/55 bg-oa-accent/20 text-oa-text"
-                    : "border border-oa-border bg-black/20 text-oa-muted"
+                    ? "oa-btn-primary"
+                    : "oa-btn-ghost"
                 }`}
                 disabled={disabled}
               >
@@ -221,7 +221,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
+              className="oa-input"
               minLength={4}
               maxLength={72}
               placeholder="Required for private rooms"
@@ -232,14 +232,14 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
         ) : null}
 
         {formError ? (
-          <p className="rounded-lg border border-oa-danger/40 bg-oa-danger/10 px-3 py-2 text-sm text-oa-danger">
+          <p className="oa-alert oa-alert-danger">
             {formError}
           </p>
         ) : null}
 
         <button
           type="submit"
-          className="w-full rounded-lg border border-oa-accent/55 bg-oa-accent/25 px-3 py-2 text-sm font-semibold text-oa-text transition-colors hover:bg-oa-accent/35 disabled:cursor-not-allowed disabled:opacity-70"
+          className="oa-btn oa-btn-primary w-full px-3 py-2"
           disabled={disabled || gameTypes.length === 0}
         >
           Create Room

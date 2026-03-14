@@ -90,10 +90,10 @@ export function LobbyPage() {
 
   const realtimeBadgeClass =
     realtimeStatus === "connected"
-      ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+      ? "oa-chip-success"
       : realtimeStatus === "connecting"
-        ? "border-amber-300/45 bg-amber-300/15 text-amber-100"
-        : "border-oa-border bg-black/25 text-oa-muted";
+        ? "oa-chip-warning"
+        : "";
 
   async function handleJoinPublic(roomId: string) {
     if (playBlocked) {
@@ -131,34 +131,34 @@ export function LobbyPage() {
   }
 
   return (
-    <section className="space-y-5">
-      <header className="rounded-2xl border border-oa-border bg-oa-surface/85 p-5">
-        <p className="text-xs uppercase tracking-[0.18em] text-oa-muted">Multiplayer Foundation</p>
+    <section className="oa-page">
+      <header className="oa-hero">
+        <p className="oa-hero-kicker">Multiplayer Arena</p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-oa-text">Play Lobby</h1>
-          <span className={`rounded-full border px-2.5 py-1 text-xs ${realtimeBadgeClass}`}>
+          <h1 className="oa-hero-title mt-0 text-2xl">Play Lobby</h1>
+          <span className={`oa-chip ${realtimeBadgeClass}`}>
             Realtime: {realtimeStatus === "connected" ? "Live" : realtimeStatus}
           </span>
         </div>
-        <p className="mt-2 text-sm text-oa-muted">
-          Create and join persisted room sessions with live lobby and room sync across clients.
+        <p className="oa-hero-subtitle">
+          Create or join a room and launch short synchronized matches.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="rounded-full border border-oa-border bg-black/20 px-2.5 py-1 text-xs text-oa-text">
+          <span className="oa-chip">
             Daily Limit: {playLimits?.dailyGameLimit ?? "-"}
           </span>
-          <span className="rounded-full border border-oa-border bg-black/20 px-2.5 py-1 text-xs text-oa-text">
+          <span className="oa-chip">
             Played Today: {playLimits?.gamesPlayedToday ?? "-"}
           </span>
-          <span className="rounded-full border border-oa-border bg-black/20 px-2.5 py-1 text-xs text-oa-text">
+          <span className="oa-chip">
             Remaining: {playLimits?.gamesRemainingToday ?? "-"}
           </span>
           <span
-            className={`rounded-full border px-2.5 py-1 text-xs ${
+            className={`oa-chip ${
               playBlocked
-                ? "border-amber-300/45 bg-amber-300/15 text-amber-100"
-                : "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+                ? "oa-chip-warning"
+                : "oa-chip-success"
             }`}
           >
             Eligibility: {playLimits ? (playBlocked ? playLimits.eligibilityReason : "ELIGIBLE") : "Loading"}
@@ -167,19 +167,19 @@ export function LobbyPage() {
       </header>
 
       {isPlayLimitsLoading ? (
-        <div className="rounded-xl border border-oa-border bg-black/20 px-4 py-3 text-sm text-oa-muted">
+        <div className="oa-empty-state">
           Loading play-limit status...
         </div>
       ) : null}
 
       {playLimitsError ? (
-        <div className="rounded-xl border border-oa-danger/45 bg-oa-danger/10 px-4 py-3 text-sm text-oa-danger">
+        <div className="oa-alert oa-alert-danger">
           {playLimitsError}
         </div>
       ) : null}
 
       {playBlocked && playLimits ? (
-        <div className="rounded-2xl border border-amber-300/45 bg-amber-300/10 p-5">
+        <div className="oa-panel">
           <p className="text-xs uppercase tracking-[0.12em] text-amber-100">Play Restricted</p>
           <h2 className="mt-2 text-xl font-semibold text-oa-text">
             {blockedByCooldown ? "You’re On Cooldown" : "Daily Play Limit Reached"}
@@ -201,7 +201,7 @@ export function LobbyPage() {
           <button
             type="button"
             onClick={refreshPlayLimits}
-            className="mt-4 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/50"
+            className="oa-btn oa-btn-secondary mt-4 px-3 py-2"
           >
             Recheck Eligibility
           </button>
@@ -209,18 +209,18 @@ export function LobbyPage() {
       ) : null}
 
       {errorMessage ? (
-        <div className="rounded-xl border border-oa-danger/45 bg-oa-danger/10 px-4 py-3 text-sm text-oa-danger">
+        <div className="oa-alert oa-alert-danger">
           {errorMessage}
         </div>
       ) : null}
 
       {actionMessage ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-oa-accent/45 bg-oa-accent/10 px-4 py-3">
+        <div className="oa-alert oa-alert-success flex items-center justify-between gap-3">
           <p className="text-sm text-oa-text">{actionMessage}</p>
           <button
             type="button"
             onClick={clearActionMessage}
-            className="rounded-md border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted transition-colors hover:border-oa-accent/45 hover:text-oa-text"
+            className="oa-btn oa-btn-ghost px-2.5 py-1 text-xs"
           >
             Dismiss
           </button>
@@ -277,7 +277,7 @@ export function LobbyPage() {
           onClick={() => {
             void refresh();
           }}
-          className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/50 disabled:cursor-not-allowed disabled:opacity-65"
+          className="oa-btn oa-btn-secondary px-3 py-2"
           disabled={isLoading || isMutating}
         >
           {isLoading ? "Refreshing..." : "Refresh Lobby"}

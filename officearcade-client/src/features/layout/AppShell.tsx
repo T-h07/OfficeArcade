@@ -1,16 +1,41 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { getNavItemsForRole } from "../navigation/navItems";
 import { NotificationBell } from "../notifications/components/NotificationBell";
 
+type RouteAccent = "dashboard" | "play" | "challenges" | "leaderboards" | "notifications" | "identity" | "admin";
+
+function resolveRouteAccent(pathname: string): RouteAccent {
+  if (pathname.startsWith("/app/play")) {
+    return "play";
+  }
+  if (pathname.startsWith("/app/challenges")) {
+    return "challenges";
+  }
+  if (pathname.startsWith("/app/leaderboards")) {
+    return "leaderboards";
+  }
+  if (pathname.startsWith("/app/notifications")) {
+    return "notifications";
+  }
+  if (pathname.startsWith("/app/store") || pathname.startsWith("/app/inventory") || pathname.startsWith("/app/profile")) {
+    return "identity";
+  }
+  if (pathname.startsWith("/app/admin")) {
+    return "admin";
+  }
+  return "dashboard";
+}
+
 function resolveNavLinkClassName(isActive: boolean) {
   if (isActive) {
-    return "rounded-lg border border-oa-accent/40 bg-oa-accent/20 px-3 py-2 text-sm font-medium text-oa-text";
+    return "oa-nav-link oa-nav-link-active";
   }
-  return "rounded-lg border border-transparent px-3 py-2 text-sm text-oa-muted transition-colors hover:border-oa-border hover:bg-oa-surface-soft/60 hover:text-oa-text";
+  return "oa-nav-link";
 }
 
 export function AppShell() {
+  const location = useLocation();
   const { accessToken, user, logout } = useAuth();
 
   if (!user) {
@@ -21,13 +46,18 @@ export function AppShell() {
   const departmentLabel = user.department
     ? `${user.department.displayName} (${user.department.code})`
     : "Unassigned";
+  const routeAccent = resolveRouteAccent(location.pathname);
+  const routeLabel = location.pathname.startsWith("/app/")
+    ? location.pathname.replace("/app/", "").replace(/\//g, " / ")
+    : "dashboard";
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-64 border-r border-oa-border bg-black/30 p-4 md:flex md:flex-col">
+    <div className="flex min-h-screen" data-route-accent={routeAccent}>
+      <aside className="hidden w-64 border-r border-[color:var(--oa-shell-border)] bg-[color:var(--oa-shell-soft)] p-4 backdrop-blur-md md:flex md:flex-col">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-oa-muted">OfficeArcade</p>
-          <h1 className="mt-2 text-xl font-semibold text-oa-text">Control Shell</h1>
+          <p className="text-xs uppercase tracking-[0.24em] text-oa-muted">OfficeArcade</p>
+          <h1 className="mt-2 text-2xl font-semibold text-oa-text">Arcade Control</h1>
+          <p className="mt-1 text-xs text-oa-muted">Multiplayer workspace</p>
         </div>
 
         <nav className="mt-6 flex flex-col gap-2">
@@ -38,7 +68,7 @@ export function AppShell() {
           ))}
         </nav>
 
-        <div className="mt-auto rounded-xl border border-oa-border bg-oa-surface/70 p-3">
+        <div className="oa-panel-soft mt-auto">
           <p className="text-xs text-oa-muted">Signed in</p>
           <p className="mt-1 text-sm font-medium text-oa-text">{user.displayName}</p>
           <p className="text-xs text-oa-muted">{user.role}</p>
@@ -47,33 +77,34 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-oa-border bg-black/25 px-4 py-3 md:px-6">
+        <header className="flex items-center justify-between border-b border-[color:var(--oa-shell-border)] bg-[color:var(--oa-shell-soft)] px-4 py-3 backdrop-blur-md md:px-6">
           <div>
-            <p className="text-sm text-oa-muted">OfficeArcade App Shell</p>
+            <p className="text-sm text-oa-muted">OfficeArcade Control Layer</p>
             <p className="text-sm font-medium text-oa-text">{user.email}</p>
           </div>
 
           <div className="flex items-center gap-3">
+            <span className="oa-chip oa-chip-route hidden md:inline-flex">{routeLabel}</span>
             <NotificationBell
               accessToken={accessToken}
               userId={user.id}
               onUnauthorized={logout}
             />
-            <span className="rounded-full border border-oa-border bg-oa-surface px-3 py-1 text-xs font-medium text-oa-text">
+            <span className="oa-chip">
               {user.role}
             </span>
             <span
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              className={`oa-chip ${
                 user.department?.active
-                  ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
-                  : "border-oa-border bg-oa-surface text-oa-muted"
+                  ? "oa-chip-route"
+                  : ""
               }`}
             >
               {departmentLabel}
             </span>
             <button
               type="button"
-              className="rounded-lg border border-oa-border bg-oa-surface px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/40 hover:text-white"
+              className="oa-btn oa-btn-secondary"
               onClick={logout}
             >
               Logout
@@ -81,7 +112,7 @@ export function AppShell() {
           </div>
         </header>
 
-        <nav className="flex flex-wrap gap-2 border-b border-oa-border bg-black/20 p-3 md:hidden">
+        <nav className="flex flex-wrap gap-2 border-b border-[color:var(--oa-shell-border)] bg-[color:var(--oa-shell-soft)] p-3 md:hidden">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} className={({ isActive }) => resolveNavLinkClassName(isActive)}>
               {item.label}

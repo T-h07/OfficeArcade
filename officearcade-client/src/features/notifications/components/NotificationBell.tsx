@@ -221,7 +221,7 @@ export function NotificationBell({ accessToken, userId, onUnauthorized }: Notifi
       <button
         type="button"
         onClick={() => setIsOpen((previous) => !previous)}
-        className="relative rounded-lg border border-oa-border bg-oa-surface px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/45"
+        className="oa-btn oa-btn-ghost relative px-3 py-2"
         aria-label="Open notifications"
       >
         <span className="sr-only">Notifications</span>
@@ -240,11 +240,11 @@ export function NotificationBell({ accessToken, userId, onUnauthorized }: Notifi
       </button>
 
       {isOpen ? (
-        <section className="absolute right-0 z-50 mt-2 w-[min(92vw,360px)] rounded-xl border border-oa-border bg-oa-surface/95 p-3 shadow-glow">
+        <section className="oa-panel absolute right-0 z-50 mt-2 w-[min(92vw,360px)] p-3 shadow-glow">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-oa-text">Notifications</h3>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-oa-border bg-black/20 px-2 py-0.5 text-[11px] text-oa-text">
+              <span className="oa-chip text-[11px]">
                 Unread: {unreadCount}
               </span>
               <button
@@ -252,7 +252,7 @@ export function NotificationBell({ accessToken, userId, onUnauthorized }: Notifi
                 onClick={() => {
                   void handleMarkAllRead();
                 }}
-                className="rounded-md border border-oa-border bg-black/20 px-2 py-1 text-[11px] text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-65"
+                className="oa-btn oa-btn-ghost px-2 py-1 text-[11px]"
                 disabled={isMutating || unreadNotifications === 0}
               >
                 Mark all read
@@ -281,7 +281,7 @@ export function NotificationBell({ accessToken, userId, onUnauthorized }: Notifi
                   key={notification.id}
                   className={`rounded-lg border px-3 py-2 ${
                     notification.unread
-                      ? "border-oa-accent/45 bg-oa-accent/10"
+                      ? "border-[rgba(var(--oa-route-rgb),0.46)] bg-[rgba(var(--oa-route-rgb),0.14)]"
                       : "border-oa-border bg-black/20"
                   }`}
                 >
@@ -300,7 +300,7 @@ export function NotificationBell({ accessToken, userId, onUnauthorized }: Notifi
                         onClick={() => {
                           void handleMarkRead(notification.id);
                         }}
-                        className="rounded-md border border-oa-border bg-black/20 px-2 py-1 text-[11px] text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-65"
+                        className="oa-btn oa-btn-ghost px-2 py-1 text-[11px]"
                         disabled={isMutating}
                       >
                         Read
@@ -321,7 +321,7 @@ export function NotificationBell({ accessToken, userId, onUnauthorized }: Notifi
           <div className="mt-3 border-t border-oa-border pt-2 text-right">
             <Link
               to="/app/notifications"
-              className="rounded-md border border-oa-border bg-black/20 px-2.5 py-1 text-xs text-oa-text transition-colors hover:border-oa-accent/45"
+              className="oa-btn oa-btn-secondary px-2.5 py-1 text-xs"
               onClick={() => setIsOpen(false)}
             >
               Open Notifications Center

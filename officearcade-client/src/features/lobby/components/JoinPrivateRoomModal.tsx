@@ -47,7 +47,7 @@ export function JoinPrivateRoomModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
-      <section className="w-full max-w-md rounded-2xl border border-oa-border bg-oa-surface p-5 shadow-glow">
+      <section className="oa-panel w-full max-w-md shadow-glow">
         <h2 className="text-lg font-semibold text-oa-text">Join Private Room</h2>
         <p className="mt-1 text-sm text-oa-muted">{roomName}</p>
 
@@ -61,7 +61,7 @@ export function JoinPrivateRoomModal({
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-lg border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/55"
+              className="oa-input"
               minLength={4}
               maxLength={72}
               autoFocus
@@ -71,7 +71,7 @@ export function JoinPrivateRoomModal({
           </div>
 
           {errorMessage ? (
-            <p className="rounded-lg border border-oa-danger/40 bg-oa-danger/10 px-3 py-2 text-sm text-oa-danger">
+            <p className="oa-alert oa-alert-danger">
               {errorMessage}
             </p>
           ) : null}
@@ -80,14 +80,14 @@ export function JoinPrivateRoomModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted transition-colors hover:border-oa-accent/45 hover:text-oa-text"
+              className="oa-btn oa-btn-ghost px-3 py-2"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-lg border border-oa-accent/55 bg-oa-accent/25 px-3 py-2 text-sm font-semibold text-oa-text transition-colors hover:bg-oa-accent/35 disabled:cursor-not-allowed disabled:opacity-70"
+              className="oa-btn oa-btn-primary px-3 py-2"
               disabled={isSubmitting}
             >
               Join Room

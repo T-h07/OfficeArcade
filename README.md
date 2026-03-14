@@ -19,6 +19,16 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
+## OA-UX-PT01 Visual Identity Foundation
+
+- Added a reusable arcade-oriented visual system foundation in the client:
+  - refreshed dark palette and tiered surface/border/shadow language
+  - reusable hero/panel/kpi/action-card/button/chip/input/alert utility classes
+  - route-aware accent variables for Dashboard, Play, Challenges, Leaderboards, Store/Profile, Notifications, and Admin
+- Applied the refreshed style baseline to representative routes:
+  - Dashboard, Play Lobby, Challenges, Leaderboards, Store, Inventory, Profile, and Admin Analytics
+- Functionality and route architecture remain unchanged; later OA-UX PTs can deepen page-level redesign and motion polish.
+
 ## OA-PT19 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior

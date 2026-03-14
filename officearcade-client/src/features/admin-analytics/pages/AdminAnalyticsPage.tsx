@@ -17,7 +17,7 @@ type MetricCardProps = {
 
 function MetricCard({ label, value, helperText }: MetricCardProps) {
   return (
-    <article className="rounded-xl border border-oa-border bg-oa-surface-soft/70 p-4">
+    <article className="oa-kpi-card">
       <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-oa-text">{value}</p>
       <p className="mt-1 text-xs text-oa-muted">{helperText}</p>
@@ -53,7 +53,7 @@ function LineTrendCard({ title, colorClass, points, valueSelector }: LineTrendCa
   const latestValue = values.length > 0 ? values[values.length - 1] : 0;
 
   return (
-    <article className="rounded-xl border border-oa-border bg-oa-surface-soft/60 p-4">
+    <article className="oa-panel-soft">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-oa-text">{title}</h3>
         <p className="text-sm text-oa-muted">Latest: {latestValue.toLocaleString()}</p>
@@ -178,27 +178,27 @@ export function AdminAnalyticsPage() {
   }, [dashboard]);
 
   return (
-    <section className="space-y-5">
-      <header className="rounded-2xl border border-oa-border bg-oa-surface/85 p-5">
-        <p className="text-xs uppercase tracking-[0.18em] text-oa-muted">Admin Intelligence</p>
+    <section className="oa-page">
+      <header className="oa-hero">
+        <p className="oa-hero-kicker">Admin Intelligence</p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold text-oa-text">Company Insights Dashboard</h1>
+          <h1 className="oa-hero-title mt-0 text-2xl">Company Insights Dashboard</h1>
           {dashboard ? (
-            <span className="rounded-full border border-oa-border bg-black/20 px-3 py-1 text-xs text-oa-muted">
+            <span className="oa-chip">
               Updated {formatDateTime(dashboard.generatedAt)}
             </span>
           ) : null}
         </div>
-        <p className="mt-2 text-sm text-oa-muted">
-          Company-level analytics for participation, game usage, reputation, and moderation health.
+        <p className="oa-hero-subtitle">
+          Participation, reputation, moderation, and game usage in one scoped admin view.
         </p>
       </header>
 
-      <section className="grid gap-3 rounded-2xl border border-oa-border bg-oa-surface/75 p-4 lg:grid-cols-[220px_260px_auto]">
+      <section className="oa-panel grid gap-3 lg:grid-cols-[220px_260px_auto]">
         <select
           value={selectedRange}
           onChange={(event) => setSelectedRange(event.target.value as AnalyticsRange)}
-          className="rounded-lg border border-oa-border bg-black/25 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+          className="oa-select"
         >
           <option value="today">Today</option>
           <option value="7d">Last 7 Days</option>
@@ -209,7 +209,7 @@ export function AdminAnalyticsPage() {
         <select
           value={selectedDepartmentFilter}
           onChange={(event) => setSelectedDepartmentFilter(event.target.value)}
-          className="rounded-lg border border-oa-border bg-black/25 px-3 py-2 text-sm text-oa-text outline-none transition-colors focus:border-oa-accent/60"
+          className="oa-select"
         >
           <option value="ALL">All Departments</option>
           <option value="UNASSIGNED">Unassigned Users</option>
@@ -220,7 +220,7 @@ export function AdminAnalyticsPage() {
           ))}
         </select>
 
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-xs text-oa-muted">
+        <div className="oa-panel-soft flex items-center justify-between gap-2 px-3 py-2 text-xs text-oa-muted">
           <span>
             Scope: <span className="text-oa-text">{toRangeLabel(selectedRange)}</span> ·{" "}
             <span className="text-oa-text">{selectedDepartmentLabel}</span>
@@ -230,7 +230,7 @@ export function AdminAnalyticsPage() {
             onClick={() => {
               void refresh();
             }}
-            className="rounded-md border border-oa-border bg-black/25 px-3 py-1.5 text-xs text-oa-text transition-colors hover:border-oa-accent/50"
+            className="oa-btn oa-btn-secondary px-3 py-1.5 text-xs"
           >
             Refresh
           </button>
@@ -238,26 +238,26 @@ export function AdminAnalyticsPage() {
       </section>
 
       {departmentLoadError ? (
-        <p className="rounded-lg border border-oa-danger/45 bg-oa-danger/10 px-3 py-2 text-sm text-oa-danger">
+        <p className="oa-alert oa-alert-danger">
           {departmentLoadError}
         </p>
       ) : null}
 
       {errorMessage ? (
-        <p className="rounded-lg border border-oa-danger/45 bg-oa-danger/10 px-3 py-2 text-sm text-oa-danger">
+        <p className="oa-alert oa-alert-danger">
           {errorMessage}
         </p>
       ) : null}
 
       {isLoading ? (
-        <div className="space-y-4 animate-pulse">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="h-24 rounded-xl border border-oa-border bg-oa-surface-soft/65" />
-            ))}
-          </div>
-          <div className="h-56 rounded-2xl border border-oa-border bg-oa-surface/70" />
-          <div className="h-72 rounded-2xl border border-oa-border bg-oa-surface/70" />
+          <div className="space-y-4 animate-pulse">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="oa-panel-soft h-24" />
+              ))}
+            </div>
+          <div className="oa-panel h-56" />
+          <div className="oa-panel h-72" />
         </div>
       ) : null}
 
@@ -306,7 +306,7 @@ export function AdminAnalyticsPage() {
             />
           </section>
 
-          <section className="rounded-2xl border border-oa-border bg-oa-surface/78 p-5">
+          <section className="oa-panel">
             <h2 className="text-lg font-semibold text-oa-text">Participation Trend</h2>
             <p className="mt-1 text-sm text-oa-muted">{dashboard.activityTrendLabel}</p>
 
@@ -333,14 +333,14 @@ export function AdminAnalyticsPage() {
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">
-            <article className="rounded-2xl border border-oa-border bg-oa-surface/78 p-5">
+            <article className="oa-panel">
               <h2 className="text-lg font-semibold text-oa-text">Game Usage</h2>
               <p className="mt-1 text-sm text-oa-muted">
                 Completed matches split by game type in the selected scope.
               </p>
 
               {dashboard.gameUsage.length === 0 ? (
-                <p className="mt-4 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted">
+                <p className="oa-empty-state mt-4">
                   No completed matches available for this scope.
                 </p>
               ) : (
@@ -372,14 +372,14 @@ export function AdminAnalyticsPage() {
               </p>
             </article>
 
-            <article className="rounded-2xl border border-oa-border bg-oa-surface/78 p-5">
+            <article className="oa-panel">
               <h2 className="text-lg font-semibold text-oa-text">Department Participation</h2>
               <p className="mt-1 text-sm text-oa-muted">
                 Top participating department: {dashboard.summary.topDepartmentByParticipation}
               </p>
 
               {dashboard.departments.length === 0 ? (
-                <p className="mt-4 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted">
+                <p className="oa-empty-state mt-4">
                   No department analytics available for this scope.
                 </p>
               ) : (
@@ -410,7 +410,7 @@ export function AdminAnalyticsPage() {
             </article>
           </section>
 
-          <section className="rounded-2xl border border-oa-border bg-oa-surface/78 p-5">
+          <section className="oa-panel">
             <h2 className="text-lg font-semibold text-oa-text">Department Comparison Table</h2>
             <div className="mt-4 overflow-x-auto rounded-xl border border-oa-border">
               <table className="min-w-full divide-y divide-oa-border text-sm">
@@ -443,7 +443,7 @@ export function AdminAnalyticsPage() {
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">
-            <article className="rounded-2xl border border-oa-border bg-oa-surface/78 p-5">
+            <article className="oa-panel">
               <h2 className="text-lg font-semibold text-oa-text">Reputation Health</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <MetricCard
@@ -469,7 +469,7 @@ export function AdminAnalyticsPage() {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-oa-border bg-oa-surface/78 p-5">
+            <article className="oa-panel">
               <h2 className="text-lg font-semibold text-oa-text">Moderation & Safety</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <MetricCard
@@ -503,7 +503,7 @@ export function AdminAnalyticsPage() {
                     dashboard.moderation.reportCategoriesInRange.map((item) => (
                       <span
                         key={item.category}
-                        className="rounded-full border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-text"
+                        className="oa-chip"
                       >
                         {item.category}: {item.count}
                       </span>
