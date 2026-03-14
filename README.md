@@ -19,24 +19,32 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT04 Implemented Scope
+## OA-PT05 Implemented Scope
 
-- Dockerized local PostgreSQL environment (`docker-compose.yml`)
-- Flyway migrations on backend startup
-- Core persisted schema foundation:
-  - `users`
-  - `player_profiles`
-  - `game_types`
-- Seeded development data through Flyway:
-  - admin + employee users
-  - matching player profiles
-  - base game type catalog (`CONNECT_FOUR`, `UNO`, `TRIVIA`)
-- Auth and admin-user-management now use one persisted database source
-- OA-PT02 and OA-PT03 flows preserved:
-  - JWT login + `/api/auth/me`
-  - role guards (`ADMIN`, `EMPLOYEE`)
-  - admin users list/search/create/update/activate/deactivate/reset-password
+- Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
+- Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) on Dockerized PostgreSQL
+- Added employee dashboard backend aggregate endpoint:
+  - `GET /api/employee/dashboard` (authenticated, `ADMIN`/`EMPLOYEE`)
+  - returns persisted profile values and derived dashboard metrics
+- Added employee dashboard frontend module:
+  - KPI tiles (level/xp/respect/karma/games/wins/losses/win rate)
+  - level progress bar and XP-to-next-level display
+  - account summary + enabled game types + next-module summary section
+  - loading, error, and retry states
+- Added Flyway seed update for realistic local dashboard profile values
+
+## Auth + Admin Scope (Current)
+
+- JWT login and session restore
+- `GET /api/auth/me`
+- Role-guarded shell (`ADMIN`, `EMPLOYEE`)
+- Admin user management:
+  - list/search/filter
+  - create/edit users
+  - activate/deactivate
+  - reset password
   - last-active-admin safety protection
+- Auth and admin management share the same persisted user source
 
 ## Core Schema Overview
 
@@ -78,7 +86,12 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `admin@officearcade.local` / `Admin@123` (role: `ADMIN`)
 - `employee@officearcade.local` / `Employee@123` (role: `EMPLOYEE`)
 
-Passwords are stored hashed in the database. Seed data is migration-driven.
+Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through Flyway.
+
+## Seeded Dashboard Profile Notes
+
+- Seeded admin and employee profiles include non-zero progression values for dashboard testing.
+- Values are persisted in `player_profiles` and survive backend/client restarts.
 
 ## Docker Database Commands
 
@@ -167,22 +180,14 @@ Optional API base override for client:
 $env:VITE_API_BASE_URL="http://localhost:18180"
 ```
 
-## Notes
-
-- Flyway runs automatically on backend startup.
-- Admin user management changes are persisted and survive backend restart.
-- Deactivated users cannot authenticate.
-- Password reset changes apply immediately and persist.
-
 ## Intentionally Not Implemented Yet
 
-- Game room lifecycle and multiplayer/gameplay logic
-- Cooldown policy enforcement
+- Room/lobby management and multiplayer gameplay flows
+- WebSocket realtime infrastructure
 - Respect/Karma business workflows
 - Store/inventory ownership flows
-- Leaderboard logic
-- WebSocket gameplay/realtime infrastructure
-- Department/tag UI and related business modules
+- Leaderboard systems
+- Department/tag modules
 
 ## Branch Strategy
 
@@ -194,4 +199,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT05` will build employee-facing dashboard/domain functionality on top of the persisted schema foundation created in OA-PT04.
+`OA-PT06` will focus on room system and lobby foundation on top of the persisted auth/admin/dashboard baseline.
