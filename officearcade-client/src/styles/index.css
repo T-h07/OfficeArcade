@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 20% -20%, rgba(43, 196, 169, 0.17), transparent 45%),
+    radial-gradient(1000px 500px at 90% 0%, rgba(82, 156, 255, 0.13), transparent 40%),
+    #060912;
+  color: #dce6f5;
+  font-family: "Segoe UI", "Inter", sans-serif;
+}
+
+@layer components {
+  .oa-card {
+    @apply rounded-2xl border border-oa-border bg-oa-surface/90 p-5;
+  }
+}
