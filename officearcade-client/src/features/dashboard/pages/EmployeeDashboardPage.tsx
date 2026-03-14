@@ -152,6 +152,14 @@ export function EmployeeDashboardPage() {
                   <span className="font-medium text-oa-text">Enabled Games:</span>{" "}
                   {dashboard.enabledGameTypeCount}
                 </p>
+                <p>
+                  <span className="font-medium text-oa-text">Pending Challenges:</span>{" "}
+                  {dashboard.pendingChallengeCount}
+                </p>
+                <p>
+                  <span className="font-medium text-oa-text">Resolved Challenges:</span>{" "}
+                  {dashboard.resolvedChallengeCount}
+                </p>
               </div>
             </article>
 
@@ -173,9 +181,42 @@ export function EmployeeDashboardPage() {
               </div>
 
               <p className="mt-4 text-sm text-oa-muted">
-                OA-PT06 will introduce the room and lobby foundation built on this dashboard baseline.
+                Respect and Karma values are reputation stats only in OA-PT09 and do not alter gameplay fairness.
               </p>
             </article>
+          </section>
+
+          <section className="rounded-2xl border border-oa-border bg-oa-surface/75 p-5">
+            <h3 className="text-lg font-semibold text-oa-text">Recent Challenge Activity</h3>
+            <p className="mt-1 text-sm text-oa-muted">
+              Post-match challenge history tied to completed Connect Four games.
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {dashboard.recentChallenges.length === 0 ? (
+                <p className="rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm text-oa-muted">
+                  No challenge activity yet.
+                </p>
+              ) : (
+                dashboard.recentChallenges.map((challenge) => (
+                  <article
+                    key={challenge.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-oa-border bg-black/20 px-3 py-2 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-oa-text">{challenge.challengeTypeDisplayName}</p>
+                      <p className="text-xs text-oa-muted">
+                        {challenge.myRole} vs {challenge.counterpartyDisplayName}
+                      </p>
+                    </div>
+                    <div className="text-right text-xs text-oa-muted">
+                      <p className="text-oa-text">{challenge.status}</p>
+                      <p>{formatDateTime(challenge.createdAt)}</p>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
           </section>
         </div>
       ) : null}

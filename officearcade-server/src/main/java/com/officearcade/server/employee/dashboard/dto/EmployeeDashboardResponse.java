@@ -1,5 +1,6 @@
 package com.officearcade.server.employee.dashboard.dto;
 
+import com.officearcade.server.challenges.dto.DashboardChallengeSummaryResponse;
 import java.util.List;
 
 public record EmployeeDashboardResponse(
@@ -22,6 +23,9 @@ public record EmployeeDashboardResponse(
         double xpProgressPercent,
         int enabledGameTypeCount,
         List<DashboardGameTypeResponse> enabledGameTypes,
+        int pendingChallengeCount,
+        int resolvedChallengeCount,
+        List<DashboardChallengeSummaryResponse> recentChallenges,
         String profileUpdatedAt,
         String generatedAt
 ) {

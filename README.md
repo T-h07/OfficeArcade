@@ -19,12 +19,12 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT08 Implemented Scope
+## OA-PT09 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
 - Preserved OA-PT06 persisted room/lobby domain and OA-PT07 realtime lobby sync
-- Added first playable game integration: **Connect Four**
+- Preserved first playable game integration: **Connect Four**
   - server-authoritative game state and turn validation
   - room-linked game lifecycle (`WAITING`, `ACTIVE`, `FINISHED`)
   - start-match endpoint for host when exactly 2 room members are present
@@ -40,6 +40,18 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - Connect Four rooms require `maxPlayers = 2`
   - joining is blocked while an active Connect Four game exists
   - if a player leaves during an active Connect Four match, room closes and game is aborted cleanly
+- Added Respect/Karma foundation tied to real completed matches:
+  - persisted safe challenge catalog (`challenge_types`)
+  - persisted post-match challenge records (`post_match_challenges`)
+  - automatic challenge creation for completed non-draw Connect Four matches
+  - loser becomes obligated player, winner becomes beneficiary/confirmer
+  - beneficiary-only resolution flow:
+    - confirm => obligated player gains Respect
+    - reject/not fulfilled => obligated player gains Karma
+  - duplicate resolution and unauthorized resolution protections
+  - challenge state integrated into Connect Four result state and a dedicated client Challenges page
+  - dashboard now surfaces pending/resolved challenge summaries
+  - Karma does **not** alter gameplay fairness in OA-PT09
 
 ## Auth + Admin Scope (Current)
 
@@ -131,6 +143,33 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `ended_at`
 - `updated_at`
 
+### `challenge_types`
+
+- `id` (UUID, PK)
+- `code` (unique safe category code)
+- `display_name`
+- `description`
+- `respect_reward_points`
+- `karma_penalty_points`
+- `enabled`
+- `created_at`
+- `updated_at`
+
+### `post_match_challenges`
+
+- `id` (UUID, PK)
+- `source_game_session_id` (unique FK to `connect_four_games`)
+- `source_room_id` (FK to `rooms`)
+- `challenge_type_id` (FK to `challenge_types`)
+- `obligated_user_id` (FK to `users`)
+- `beneficiary_user_id` (FK to `users`)
+- `status` (`PENDING`, `COMPLETED_CONFIRMED`, `REJECTED`, `EXPIRED`)
+- `respect_points_awarded`
+- `karma_points_awarded`
+- `created_at`
+- `resolved_at`
+- `updated_at`
+
 ## Seeded Dev Credentials
 
 - `admin@officearcade.local` / `Admin@123` (role: `ADMIN`)
@@ -143,7 +182,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Seeded admin and employee profiles include non-zero progression values for dashboard testing.
 - Values are persisted in `player_profiles` and survive backend/client restarts.
 
-## Room/Lobby Realtime + Game Notes (OA-PT08)
+## Realtime + Game + Reputation Notes (OA-PT09)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -154,6 +193,9 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Connect Four rooms can transition into active gameplay once host starts with 2 players present.
 - Connect Four board state is synchronized live across clients via room-specific game topic events.
 - Gameplay correctness is server-authoritative; frontend never decides official outcomes.
+- Completed non-draw Connect Four matches create one safe post-match challenge record.
+- Challenges are resolved manually through confirm/reject actions by the beneficiary only.
+- Respect/Karma updates are persisted on player profiles and reflected in dashboard + challenge history views.
 
 ## Docker Database Commands
 
@@ -247,7 +289,6 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 
 - Room chat and live presence orchestration
 - Additional game integrations (UNO/TRIVIA remain placeholders)
-- Respect/Karma business workflows
 - Store/inventory ownership flows
 - Leaderboard systems
 - Department/tag modules
@@ -262,4 +303,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT09` will focus on Respect/Karma and post-match social systems on top of playable game flow.
+`OA-PT10` will focus on store/inventory/cosmetics progression systems.

@@ -21,6 +21,7 @@ public record ConnectFourGameStateResponse(
         boolean myTurn,
         String startedAt,
         String endedAt,
-        String updatedAt
+        String updatedAt,
+        ConnectFourChallengeSummaryResponse challenge
 ) {
 }

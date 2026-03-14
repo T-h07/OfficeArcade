@@ -3,6 +3,7 @@ import { RequireAuth } from "../features/auth/RequireAuth";
 import { PublicOnlyRoute } from "../features/auth/PublicOnlyRoute";
 import { RequireRole } from "../features/auth/RequireRole";
 import { AdminUsersPage } from "../features/admin-users/pages/AdminUsersPage";
+import { ChallengesPage } from "../features/challenges/pages/ChallengesPage";
 import { AppShell } from "../features/layout/AppShell";
 import { AdminOverviewPage } from "../pages/AdminOverviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
@@ -35,6 +36,7 @@ export function AppRouter() {
         <Route index element={<Navigate to="/app/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="play" element={<PlayPage />} />
+        <Route path="challenges" element={<ChallengesPage />} />
         <Route
           path="admin-overview"
           element={

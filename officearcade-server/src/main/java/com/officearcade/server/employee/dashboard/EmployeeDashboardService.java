@@ -1,5 +1,7 @@
 package com.officearcade.server.employee.dashboard;
 
+import com.officearcade.server.challenges.PostMatchChallengeService;
+import com.officearcade.server.challenges.dto.DashboardChallengeSummaryResponse;
 import com.officearcade.server.catalog.persistence.GameTypeEntityRepository;
 import com.officearcade.server.employee.dashboard.dto.DashboardGameTypeResponse;
 import com.officearcade.server.employee.dashboard.dto.EmployeeDashboardResponse;
@@ -25,15 +27,18 @@ public class EmployeeDashboardService {
     private final UserAccountService userAccountService;
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
     private final GameTypeEntityRepository gameTypeEntityRepository;
+    private final PostMatchChallengeService postMatchChallengeService;
 
     public EmployeeDashboardService(
             UserAccountService userAccountService,
             PlayerProfileEntityRepository playerProfileEntityRepository,
-            GameTypeEntityRepository gameTypeEntityRepository
+            GameTypeEntityRepository gameTypeEntityRepository,
+            PostMatchChallengeService postMatchChallengeService
     ) {
         this.userAccountService = userAccountService;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
         this.gameTypeEntityRepository = gameTypeEntityRepository;
+        this.postMatchChallengeService = postMatchChallengeService;
     }
 
     @Transactional(readOnly = true)
@@ -72,6 +77,11 @@ public class EmployeeDashboardService {
                 .map(gameType -> new DashboardGameTypeResponse(gameType.getCode(), gameType.getDisplayName()))
                 .toList();
 
+        int pendingChallengeCount = postMatchChallengeService.getPendingChallengeCount(user.id());
+        int resolvedChallengeCount = postMatchChallengeService.getResolvedChallengeCount(user.id());
+        List<DashboardChallengeSummaryResponse> recentChallenges = postMatchChallengeService
+                .getRecentChallengeSummaries(user.id(), 3);
+
         return new EmployeeDashboardResponse(
                 user.id(),
                 user.displayName(),
@@ -92,6 +102,9 @@ public class EmployeeDashboardService {
                 xpProgressPercent,
                 enabledGameTypes.size(),
                 enabledGameTypes,
+                pendingChallengeCount,
+                resolvedChallengeCount,
+                recentChallenges,
                 profile.getUpdatedAt().toString(),
                 Instant.now().toString()
         );

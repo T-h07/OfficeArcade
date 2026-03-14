@@ -1,5 +1,7 @@
 package com.officearcade.server.games.connectfour;
 
+import com.officearcade.server.challenges.PostMatchChallengeService;
+import com.officearcade.server.games.connectfour.dto.ConnectFourChallengeSummaryResponse;
 import com.officearcade.server.games.connectfour.dto.ConnectFourGameStateResponse;
 import com.officearcade.server.games.connectfour.dto.ConnectFourPlayerResponse;
 import com.officearcade.server.games.connectfour.persistence.ConnectFourGameEntity;
@@ -30,17 +32,20 @@ public class ConnectFourGameService {
     private final RoomMemberEntityRepository roomMemberEntityRepository;
     private final ConnectFourGameEntityRepository connectFourGameEntityRepository;
     private final ConnectFourRealtimePublisher connectFourRealtimePublisher;
+    private final PostMatchChallengeService postMatchChallengeService;
 
     public ConnectFourGameService(
             RoomEntityRepository roomEntityRepository,
             RoomMemberEntityRepository roomMemberEntityRepository,
             ConnectFourGameEntityRepository connectFourGameEntityRepository,
-            ConnectFourRealtimePublisher connectFourRealtimePublisher
+            ConnectFourRealtimePublisher connectFourRealtimePublisher,
+            PostMatchChallengeService postMatchChallengeService
     ) {
         this.roomEntityRepository = roomEntityRepository;
         this.roomMemberEntityRepository = roomMemberEntityRepository;
         this.connectFourGameEntityRepository = connectFourGameEntityRepository;
         this.connectFourRealtimePublisher = connectFourRealtimePublisher;
+        this.postMatchChallengeService = postMatchChallengeService;
     }
 
     @Transactional(readOnly = true)
@@ -176,6 +181,10 @@ public class ConnectFourGameService {
         game.setBoardState(ConnectFourRulesEngine.encodeBoard(board));
         ConnectFourGameEntity saved = connectFourGameEntityRepository.save(game);
 
+        if (saved.getStatus() == ConnectFourGameStatus.FINISHED && !saved.isDraw()) {
+            postMatchChallengeService.createForCompletedConnectFour(saved);
+        }
+
         connectFourRealtimePublisher.publishGameEvent(
                 eventType,
                 roomId,
@@ -236,6 +245,7 @@ public class ConnectFourGameService {
         String startedAt = null;
         String endedAt = null;
         String updatedAt = room.getUpdatedAt().toString();
+        ConnectFourChallengeSummaryResponse challenge = null;
 
         List<ConnectFourPlayerResponse> players = members.stream()
                 .map(member -> new ConnectFourPlayerResponse(
@@ -265,6 +275,7 @@ public class ConnectFourGameService {
             startedAt = nullableInstant(game.getStartedAt());
             endedAt = nullableInstant(game.getEndedAt());
             updatedAt = game.getUpdatedAt().toString();
+            challenge = postMatchChallengeService.findConnectFourChallengeSummary(game.getId()).orElse(null);
         }
 
         boolean currentUserIsHost = room.getHostUser().getId().equals(currentUserId);
@@ -297,7 +308,8 @@ public class ConnectFourGameService {
                 myTurn,
                 startedAt,
                 endedAt,
-                updatedAt
+                updatedAt,
+                challenge
         );
     }
 

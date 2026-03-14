@@ -80,6 +80,9 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
   const playerTwoName = findPlayerName(gameState, gameState.playerTwoUserId);
   const currentTurnName = findPlayerName(gameState, gameState.currentTurnUserId);
   const winnerName = findPlayerName(gameState, gameState.winnerUserId);
+  const challenge = gameState.challenge;
+  const currentUserIsObligated = challenge?.obligatedUserId === currentUserId;
+  const currentUserIsBeneficiary = challenge?.beneficiaryUserId === currentUserId;
 
   const statusChipClass =
     gameState.status === "ACTIVE"
@@ -232,6 +235,26 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
         <p>Moves: {gameState.moveCount}</p>
         <p>You are {gameState.playerOneUserId === currentUserId ? "Player One" : gameState.playerTwoUserId === currentUserId ? "Player Two" : "a room member"}.</p>
       </div>
+
+      {gameState.status === "FINISHED" && !gameState.draw && challenge ? (
+        <div className="mt-4 rounded-xl border border-oa-border bg-black/20 p-4">
+          <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Post-match challenge</p>
+          <h3 className="mt-1 text-base font-semibold text-oa-text">{challenge.challengeTypeDisplayName}</h3>
+          <p className="mt-1 text-sm text-oa-muted">
+            Status: <span className="font-medium text-oa-text">{challenge.status}</span>
+          </p>
+          <p className="mt-2 text-sm text-oa-muted">
+            {currentUserIsBeneficiary
+              ? "You are the confirmer. Resolve this in the Challenges page."
+              : currentUserIsObligated
+                ? "You are the obligated player for this office-safe challenge."
+                : "Challenge created for this completed match."}
+          </p>
+          <p className="mt-2 text-xs text-oa-muted">
+            Open the <span className="text-oa-text">Challenges</span> page to confirm or reject fulfillment.
+          </p>
+        </div>
+      ) : null}
     </section>
   );
 }

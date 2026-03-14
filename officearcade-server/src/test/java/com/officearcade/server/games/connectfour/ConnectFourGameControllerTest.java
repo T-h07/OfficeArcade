@@ -103,6 +103,8 @@ class ConnectFourGameControllerTest {
         assertThat(finalMove.getBody().draw()).isFalse();
         assertThat(finalMove.getBody().winnerUserId()).isEqualTo(startResponse.getBody().playerOneUserId());
         assertThat(finalMove.getBody().moveCount()).isEqualTo(7);
+        assertThat(finalMove.getBody().challenge()).isNotNull();
+        assertThat(finalMove.getBody().challenge().status()).isEqualTo("PENDING");
 
         ResponseEntity<String> postGameMoveResponse = restTemplate.exchange(
                 baseUrl("/api/games/connect-four/room/" + roomId + "/move"),

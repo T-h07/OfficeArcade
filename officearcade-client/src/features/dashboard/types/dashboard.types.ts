@@ -5,6 +5,17 @@ export type DashboardGameType = {
   displayName: string;
 };
 
+export type DashboardChallengeSummary = {
+  id: string;
+  challengeTypeCode: string;
+  challengeTypeDisplayName: string;
+  status: "PENDING" | "COMPLETED_CONFIRMED" | "REJECTED" | "EXPIRED";
+  myRole: "OBLIGATED" | "BENEFICIARY";
+  counterpartyDisplayName: string;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
 export type EmployeeDashboardResponse = {
   userId: string;
   displayName: string;
@@ -25,6 +36,9 @@ export type EmployeeDashboardResponse = {
   xpProgressPercent: number;
   enabledGameTypeCount: number;
   enabledGameTypes: DashboardGameType[];
+  pendingChallengeCount: number;
+  resolvedChallengeCount: number;
+  recentChallenges: DashboardChallengeSummary[];
   profileUpdatedAt: string;
   generatedAt: string;
 };

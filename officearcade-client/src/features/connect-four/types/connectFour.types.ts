@@ -28,6 +28,7 @@ export type ConnectFourGameState = {
   startedAt: string | null;
   endedAt: string | null;
   updatedAt: string;
+  challenge: ConnectFourChallengeSummary | null;
 };
 
 export type ConnectFourMoveRequest = {
@@ -40,4 +41,17 @@ export type ConnectFourRealtimeEvent = {
   gameSessionId: string | null;
   triggeredByUserId: string | null;
   occurredAt: string;
+};
+
+export type ConnectFourChallengeSummary = {
+  challengeId: string;
+  challengeTypeCode: string;
+  challengeTypeDisplayName: string;
+  status: "PENDING" | "COMPLETED_CONFIRMED" | "REJECTED" | "EXPIRED";
+  obligatedUserId: string;
+  beneficiaryUserId: string;
+  respectPointsAwarded: number;
+  karmaPointsAwarded: number;
+  createdAt: string;
+  resolvedAt: string | null;
 };
