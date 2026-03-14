@@ -106,7 +106,14 @@ cd officearcade-server
 .\mvnw.cmd spring-boot:run
 ```
 
-Server runs on `http://localhost:8080`.
+Server runs on `http://localhost:18180` by default.
+
+Optional server port override:
+
+```powershell
+$env:OFFICEARCADE_SERVER_PORT="19180"
+.\mvnw.cmd spring-boot:run
+```
 
 ### 2) Start the Client (Web Dev Mode)
 
@@ -129,13 +136,13 @@ npm run tauri:dev
 Optional API base override:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080
+VITE_API_BASE_URL=http://localhost:18180
 ```
 
 Windows PowerShell:
 
 ```powershell
-$env:VITE_API_BASE_URL="http://localhost:8080"
+$env:VITE_API_BASE_URL="http://localhost:18180"
 ```
 
 ## Branch Strategy
