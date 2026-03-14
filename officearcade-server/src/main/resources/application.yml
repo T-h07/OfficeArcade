@@ -1,6 +1,9 @@
 spring:
   application:
     name: officearcade-server
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
 server:
   port: 8080
@@ -12,3 +15,21 @@ officearcade:
       - http://127.0.0.1:5173
       - http://localhost:1420
       - http://127.0.0.1:1420
+  auth:
+    jwt:
+      issuer: officearcade-server
+      secret: dev-officearcade-jwt-secret-change-before-production-2026-pt02
+      access-token-ttl-minutes: 480
+    seeded-users:
+      - id: user-admin-001
+        email: admin@officearcade.local
+        display-name: Admin Operator
+        password-hash: $2a$10$GM59UomrBcaovJje8.1GF.6lzUykrtWM8VNIS8.jq.24SJh.NMTki
+        role: ADMIN
+        enabled: true
+      - id: user-employee-001
+        email: employee@officearcade.local
+        display-name: Employee Player
+        password-hash: $2a$10$DD04Tt9kcUZBz8r6hBaJJOJWc0lVPsdmF5odJyW989f/hi6zp4M8W
+        role: EMPLOYEE
+        enabled: true

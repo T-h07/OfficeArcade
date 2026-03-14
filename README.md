@@ -6,7 +6,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 
 - Desktop shell: Tauri
 - Frontend: React + TypeScript + Vite + Tailwind CSS
-- Visual/game layer placeholder: PixiJS dependency added (no gameplay implementation in OA-PT01)
+- Visual/game layer placeholder: PixiJS dependency included (no gameplay implementation yet)
 - Backend: Spring Boot (Java 21)
 - Persistence (later): PostgreSQL
 - Realtime (later): WebSocket
@@ -14,31 +14,61 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 ## Monorepo Structure
 
 - `docs/` - concept, architecture, roadmap, and API placeholders
-- `officearcade-client/` - Tauri + React + TS + Vite + Tailwind desktop client foundation
-- `officearcade-server/` - Spring Boot server foundation with health API
-- `officearcade-shared/` - placeholders for shared contracts, shared types, and cross-layer docs
+- `officearcade-client/` - Tauri + React + TypeScript desktop client app
+- `officearcade-server/` - Spring Boot backend with auth/security foundation
+- `officearcade-shared/` - shared contracts/types/docs placeholders for future PTs
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT01 Implemented Scope
+## OA-PT02 Implemented Scope
 
-- Runnable Spring Boot server baseline
-- `GET /api/health` endpoint with status/application/profile/timestamp payload
-- CORS enabled for local frontend and Tauri dev origins
-- Runnable React + TypeScript + Vite + Tailwind client foundation
-- Tauri desktop shell configuration and minimal Rust entrypoint
-- Foundation landing page with client/server status UI
-- Client call to backend health endpoint with loading/success/offline handling
-- Environment-based API base URL (`VITE_API_BASE_URL`)
+- Spring Security + JWT authentication baseline
+- Development-only seeded users (`ADMIN`, `EMPLOYEE`)
+- Auth endpoints:
+  - `POST /api/auth/login`
+  - `GET /api/auth/me`
+  - `GET /api/auth/role-check/admin` (admin-only role-gate probe)
+- Existing `GET /api/health` retained as public
+- Client auth-first flow:
+  - login page
+  - token persistence across reloads
+  - startup session restore via `/api/auth/me`
+  - logout flow
+  - protected routing
+  - role guards
+- Minimal role-aware post-login app shell with placeholder pages:
+  - Dashboard
+  - Admin Overview (admin only)
+  - Profile (employee only)
+  - Settings
+
+## Auth Flow Summary
+
+1. User submits credentials to `POST /api/auth/login`.
+2. Backend validates against seeded dev users and returns JWT access token + user payload.
+3. Client stores token locally and loads the protected app shell.
+4. On app boot, client calls `GET /api/auth/me` with token to restore session.
+5. Missing/invalid token returns user to login.
+
+## Seeded Dev Credentials
+
+These are development-only credentials for OA-PT02:
+
+- `admin@officearcade.local` / `Admin@123` (role: `ADMIN`)
+- `employee@officearcade.local` / `Employee@123` (role: `EMPLOYEE`)
+
+Note: this seeded model is intentionally temporary until later PTs introduce persistent identity/domain infrastructure.
 
 ## Intentionally Not Implemented Yet
 
-- authentication and authorization logic
-- admin features and user management
-- departments, room flows, multiplayer logic
-- gameplay/PixiJS scene implementation
-- respect/karma, leaderboard, store/inventory logic
-- PostgreSQL integration and production schema
-- WebSocket/realtime infrastructure
+- real admin user management workflows (planned for OA-PT03)
+- department management
+- game room lifecycle or gameplay logic
+- respect/karma systems
+- store/inventory systems
+- leaderboard systems
+- PostgreSQL/Flyway integration
+- websocket/realtime gameplay infrastructure
+- signup/recovery/refresh-token production auth flows
 
 ## Run Locally
 
@@ -98,4 +128,4 @@ Each OA-PT is developed on its own task branch, merged manually into `dev`, then
 
 ## Next Step
 
-`OA-PT02` will focus on app shell/navigation and role-oriented structure (Admin and Employee paths) without introducing full business features yet.
+`OA-PT03` will focus on Admin User Management foundations and management workflows on top of the OA-PT02 auth/role baseline.
