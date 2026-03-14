@@ -2,6 +2,9 @@ package com.officearcade.server.store;
 
 import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
+import com.officearcade.server.notifications.NotificationCreateCommand;
+import com.officearcade.server.notifications.NotificationService;
+import com.officearcade.server.notifications.NotificationType;
 import com.officearcade.server.store.dto.EquippedCosmeticSummaryResponse;
 import com.officearcade.server.store.dto.InventoryItemResponse;
 import com.officearcade.server.store.dto.InventoryResponse;
@@ -42,19 +45,22 @@ public class StoreInventoryService {
     private final UserEquippedCosmeticEntityRepository userEquippedCosmeticEntityRepository;
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
     private final UserEntityRepository userEntityRepository;
+    private final NotificationService notificationService;
 
     public StoreInventoryService(
             CosmeticItemEntityRepository cosmeticItemEntityRepository,
             UserOwnedCosmeticEntityRepository userOwnedCosmeticEntityRepository,
             UserEquippedCosmeticEntityRepository userEquippedCosmeticEntityRepository,
             PlayerProfileEntityRepository playerProfileEntityRepository,
-            UserEntityRepository userEntityRepository
+            UserEntityRepository userEntityRepository,
+            NotificationService notificationService
     ) {
         this.cosmeticItemEntityRepository = cosmeticItemEntityRepository;
         this.userOwnedCosmeticEntityRepository = userOwnedCosmeticEntityRepository;
         this.userEquippedCosmeticEntityRepository = userEquippedCosmeticEntityRepository;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
         this.userEntityRepository = userEntityRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -158,6 +164,19 @@ public class StoreInventoryService {
 
         StoreSummaryResponse summary = buildStoreSummary(userId, profile);
         StoreCatalogItemResponse purchased = toCatalogResponse(item, true, false);
+        notificationService.safeCreateNotification(new NotificationCreateCommand(
+                userId,
+                NotificationType.STORE_PURCHASE_SUCCESS,
+                "Purchase successful",
+                "Purchase completed: " + item.getDisplayName() + ".",
+                "/app/inventory",
+                null,
+                null,
+                null,
+                item.getId(),
+                null,
+                "store-purchase:" + item.getId()
+        ));
         return new StorePurchaseResponse("OK", "Purchase completed.", summary, purchased);
     }
 
@@ -236,6 +255,20 @@ public class StoreInventoryService {
         equip.setCategory(item.getCategory());
         equip.setEquippedAt(Instant.now());
         userEquippedCosmeticEntityRepository.save(equip);
+
+        notificationService.safeCreateNotification(new NotificationCreateCommand(
+                userId,
+                NotificationType.ITEM_EQUIPPED,
+                "Item equipped",
+                "You equipped " + item.getDisplayName() + ".",
+                "/app/inventory",
+                null,
+                null,
+                null,
+                item.getId(),
+                null,
+                null
+        ));
 
         return getInventory(currentUserIdText);
     }

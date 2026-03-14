@@ -10,6 +10,9 @@ import com.officearcade.server.challenges.persistence.PostMatchChallengeEntityRe
 import com.officearcade.server.games.connectfour.ConnectFourGameStatus;
 import com.officearcade.server.games.connectfour.dto.ConnectFourChallengeSummaryResponse;
 import com.officearcade.server.games.connectfour.persistence.ConnectFourGameEntity;
+import com.officearcade.server.notifications.NotificationCreateCommand;
+import com.officearcade.server.notifications.NotificationService;
+import com.officearcade.server.notifications.NotificationType;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
 import com.officearcade.server.users.persistence.UserEntity;
@@ -28,15 +31,18 @@ public class PostMatchChallengeService {
     private final ChallengeTypeEntityRepository challengeTypeEntityRepository;
     private final PostMatchChallengeEntityRepository postMatchChallengeEntityRepository;
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
+    private final NotificationService notificationService;
 
     public PostMatchChallengeService(
             ChallengeTypeEntityRepository challengeTypeEntityRepository,
             PostMatchChallengeEntityRepository postMatchChallengeEntityRepository,
-            PlayerProfileEntityRepository playerProfileEntityRepository
+            PlayerProfileEntityRepository playerProfileEntityRepository,
+            NotificationService notificationService
     ) {
         this.challengeTypeEntityRepository = challengeTypeEntityRepository;
         this.postMatchChallengeEntityRepository = postMatchChallengeEntityRepository;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -84,7 +90,9 @@ public class PostMatchChallengeService {
         challenge.setResolvedByAdmin(null);
         challenge.setResolvedAt(null);
 
-        return Optional.of(postMatchChallengeEntityRepository.save(challenge));
+        PostMatchChallengeEntity saved = postMatchChallengeEntityRepository.save(challenge);
+        notifyChallengeCreated(saved);
+        return Optional.of(saved);
     }
 
     @Transactional(readOnly = true)
@@ -235,6 +243,7 @@ public class PostMatchChallengeService {
         challenge.setResolutionNote(null);
         playerProfileEntityRepository.save(obligatedProfile);
         PostMatchChallengeEntity savedChallenge = postMatchChallengeEntityRepository.save(challenge);
+        notifyChallengeResolved(savedChallenge, resolutionStatus);
 
         return toChallengeSummary(savedChallenge, currentUserId);
     }
@@ -383,5 +392,140 @@ public class PostMatchChallengeService {
             return trimmed.substring(0, 280);
         }
         return trimmed;
+    }
+
+    private void notifyChallengeCreated(PostMatchChallengeEntity challenge) {
+        String navigationPath = "/app/challenges";
+        String eventKey = "challenge-created:" + challenge.getId();
+
+        NotificationCreateCommand obligatedNotification = new NotificationCreateCommand(
+                challenge.getObligatedUser().getId(),
+                NotificationType.CHALLENGE_CREATED,
+                "New challenge created",
+                "Challenge created from your recent match against " + challenge.getBeneficiaryUser().getDisplayName() + ".",
+                navigationPath,
+                challenge.getSourceRoom().getId(),
+                challenge.getSourceGameSession().getId(),
+                challenge.getId(),
+                null,
+                null,
+                eventKey
+        );
+
+        NotificationCreateCommand beneficiaryNotification = new NotificationCreateCommand(
+                challenge.getBeneficiaryUser().getId(),
+                NotificationType.CHALLENGE_CREATED,
+                "Challenge ready for review",
+                "A post-match challenge against " + challenge.getObligatedUser().getDisplayName() + " is pending your decision.",
+                navigationPath,
+                challenge.getSourceRoom().getId(),
+                challenge.getSourceGameSession().getId(),
+                challenge.getId(),
+                null,
+                null,
+                eventKey
+        );
+
+        notificationService.safeCreateNotifications(List.of(obligatedNotification, beneficiaryNotification));
+    }
+
+    private void notifyChallengeResolved(PostMatchChallengeEntity challenge, ChallengeStatus resolutionStatus) {
+        if (resolutionStatus != ChallengeStatus.COMPLETED_CONFIRMED && resolutionStatus != ChallengeStatus.REJECTED) {
+            return;
+        }
+
+        String navigationPath = "/app/challenges";
+        if (resolutionStatus == ChallengeStatus.COMPLETED_CONFIRMED) {
+            NotificationCreateCommand obligatedChallenge = new NotificationCreateCommand(
+                    challenge.getObligatedUser().getId(),
+                    NotificationType.CHALLENGE_CONFIRMED,
+                    "Challenge confirmed",
+                    "Your challenge was confirmed by " + challenge.getBeneficiaryUser().getDisplayName() + ".",
+                    navigationPath,
+                    challenge.getSourceRoom().getId(),
+                    challenge.getSourceGameSession().getId(),
+                    challenge.getId(),
+                    null,
+                    null,
+                    "challenge-confirmed:" + challenge.getId()
+            );
+            NotificationCreateCommand obligatedRespect = new NotificationCreateCommand(
+                    challenge.getObligatedUser().getId(),
+                    NotificationType.RESPECT_GAINED,
+                    "Respect awarded",
+                    "You gained " + challenge.getRespectPointsAwarded() + " Respect from challenge resolution.",
+                    navigationPath,
+                    challenge.getSourceRoom().getId(),
+                    challenge.getSourceGameSession().getId(),
+                    challenge.getId(),
+                    null,
+                    null,
+                    "respect-gained:" + challenge.getId()
+            );
+            NotificationCreateCommand beneficiaryChallenge = new NotificationCreateCommand(
+                    challenge.getBeneficiaryUser().getId(),
+                    NotificationType.CHALLENGE_CONFIRMED,
+                    "Challenge resolved",
+                    "You confirmed a challenge outcome for " + challenge.getObligatedUser().getDisplayName() + ".",
+                    navigationPath,
+                    challenge.getSourceRoom().getId(),
+                    challenge.getSourceGameSession().getId(),
+                    challenge.getId(),
+                    null,
+                    null,
+                    "challenge-confirmed:" + challenge.getId()
+            );
+            notificationService.safeCreateNotifications(List.of(
+                    obligatedChallenge,
+                    obligatedRespect,
+                    beneficiaryChallenge
+            ));
+            return;
+        }
+
+        NotificationCreateCommand obligatedChallenge = new NotificationCreateCommand(
+                challenge.getObligatedUser().getId(),
+                NotificationType.CHALLENGE_REJECTED,
+                "Challenge marked not fulfilled",
+                challenge.getBeneficiaryUser().getDisplayName() + " marked your challenge as not fulfilled.",
+                navigationPath,
+                challenge.getSourceRoom().getId(),
+                challenge.getSourceGameSession().getId(),
+                challenge.getId(),
+                null,
+                null,
+                "challenge-rejected:" + challenge.getId()
+        );
+        NotificationCreateCommand obligatedKarma = new NotificationCreateCommand(
+                challenge.getObligatedUser().getId(),
+                NotificationType.KARMA_APPLIED,
+                "Karma applied",
+                "You received " + challenge.getKarmaPointsAwarded() + " Karma from challenge resolution.",
+                navigationPath,
+                challenge.getSourceRoom().getId(),
+                challenge.getSourceGameSession().getId(),
+                challenge.getId(),
+                null,
+                null,
+                "karma-applied:" + challenge.getId()
+        );
+        NotificationCreateCommand beneficiaryChallenge = new NotificationCreateCommand(
+                challenge.getBeneficiaryUser().getId(),
+                NotificationType.CHALLENGE_REJECTED,
+                "Challenge resolved",
+                "You marked challenge outcome as not fulfilled for " + challenge.getObligatedUser().getDisplayName() + ".",
+                navigationPath,
+                challenge.getSourceRoom().getId(),
+                challenge.getSourceGameSession().getId(),
+                challenge.getId(),
+                null,
+                null,
+                "challenge-rejected:" + challenge.getId()
+        );
+        notificationService.safeCreateNotifications(List.of(
+                obligatedChallenge,
+                obligatedKarma,
+                beneficiaryChallenge
+        ));
     }
 }

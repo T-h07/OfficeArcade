@@ -20,6 +20,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class RealtimeJwtChannelInterceptor implements ChannelInterceptor {
 
+    private static final String USER_NOTIFICATION_TOPIC_PREFIX = "/topic/notifications/";
+
     private final JwtService jwtService;
     private final UserAccountService userAccountService;
 
@@ -41,11 +43,34 @@ public class RealtimeJwtChannelInterceptor implements ChannelInterceptor {
             return message;
         }
 
-        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand()) && accessor.getUser() == null) {
-            throw new AccessDeniedException("Realtime subscription requires authentication.");
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            if (accessor.getUser() == null) {
+                throw new AccessDeniedException("Realtime subscription requires authentication.");
+            }
+            enforceUserScopedSubscriptions(accessor);
         }
 
         return message;
+    }
+
+    private static void enforceUserScopedSubscriptions(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        if (destination == null || !destination.startsWith(USER_NOTIFICATION_TOPIC_PREFIX)) {
+            return;
+        }
+
+        if (!(accessor.getUser() instanceof UsernamePasswordAuthenticationToken authentication)
+                || !(authentication.getPrincipal() instanceof OfficeArcadePrincipal principal)) {
+            throw new AccessDeniedException("Realtime subscription context is invalid.");
+        }
+
+        String requestedUserId = destination.substring(USER_NOTIFICATION_TOPIC_PREFIX.length()).trim();
+        if (requestedUserId.isEmpty()) {
+            throw new AccessDeniedException("Realtime notification topic is invalid.");
+        }
+        if (!principal.id().equals(requestedUserId)) {
+            throw new AccessDeniedException("Cannot subscribe to another user's notification topic.");
+        }
     }
 
     private UsernamePasswordAuthenticationToken authenticate(StompHeaderAccessor accessor) {

@@ -8,6 +8,7 @@ import { ChallengesPage } from "../features/challenges/pages/ChallengesPage";
 import { AppShell } from "../features/layout/AppShell";
 import { LeaderboardsPage } from "../features/leaderboards/pages/LeaderboardsPage";
 import { AdminModerationPage } from "../features/moderation/pages/AdminModerationPage";
+import { NotificationsPage } from "../features/notifications/pages/NotificationsPage";
 import { InventoryPage } from "../features/store/pages/InventoryPage";
 import { StorePage } from "../features/store/pages/StorePage";
 import { AdminOverviewPage } from "../pages/AdminOverviewPage";
@@ -45,6 +46,7 @@ export function AppRouter() {
         <Route path="play" element={<PlayPage />} />
         <Route path="challenges" element={<ChallengesPage />} />
         <Route path="leaderboards" element={<LeaderboardsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="store" element={<StorePage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route

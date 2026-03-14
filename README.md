@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT15 Implemented Scope
+## OA-PT16 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -141,6 +141,22 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - new admin moderation page in client:
     - queue, detail actions, dispute review, policy toggles, and audit history
   - lobby + challenge surfaces now include practical report actions for users
+- Added persisted in-app notifications and social feedback foundation:
+  - new `notifications` persistence model with read-state (`read_at`) and source metadata
+  - authenticated notification APIs:
+    - `GET /api/notifications/me`
+    - `GET /api/notifications/me/unread-count`
+    - `POST /api/notifications/{notificationId}/read`
+    - `POST /api/notifications/me/read-all`
+  - notification event creation tied to real product flows:
+    - challenge created/confirmed/rejected/dispute-resolved
+    - Respect/Karma outcomes
+    - store purchase and equip actions
+    - moderation status/report review updates
+  - notification bell + unread badge in app shell
+  - notifications center page with filter/read/read-all controls
+  - user-scoped realtime notification topic updates for count/list refresh behavior
+  - notification state is persisted and survives refresh/restart
 
 ## Auth + Admin Scope (Current)
 
@@ -359,6 +375,24 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `note`
 - `created_at`
 
+### `notifications`
+
+- `id` (UUID, PK)
+- `user_id` (FK to `users`)
+- `type` (`CHALLENGE_CREATED`, `CHALLENGE_CONFIRMED`, `CHALLENGE_REJECTED`, `CHALLENGE_DISPUTE_RESOLVED`, `RESPECT_GAINED`, `KARMA_APPLIED`, `STORE_PURCHASE_SUCCESS`, `ITEM_EQUIPPED`, `MODERATION_STATUS_UPDATE`, `REPORT_STATUS_UPDATE`, `GAME_RESULT`)
+- `title`
+- `message`
+- `navigation_path` (nullable app path for click-through)
+- `source_room_id` (nullable FK to `rooms`)
+- `source_game_session_id` (nullable FK to `connect_four_games`)
+- `source_challenge_id` (nullable FK to `post_match_challenges`)
+- `source_store_item_id` (nullable FK to `cosmetic_items`)
+- `source_report_id` (nullable FK to `moderation_reports`)
+- `event_key` (nullable per-user dedupe key)
+- `created_at`
+- `read_at` (nullable; unread when null)
+- `updated_at`
+
 ### `cosmetic_items`
 
 - `id` (UUID, PK)
@@ -428,7 +462,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Karma leaderboard is intentionally ordered ascending (lower karma ranks higher).
 - API exposes current-user ranking context even if the user is outside the visible top list.
 
-## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits + Moderation Notes (OA-PT15)
+## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits + Moderation + Notifications Notes (OA-PT16)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -460,6 +494,11 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Suspended users are explicitly blocked from normal app APIs while suspension is active.
 - Challenge disputes can be escalated to `DISPUTED` and admin-resolved without duplicate point application.
 - Challenge safety policy toggles operate through persisted `challenge_types.enabled` controls.
+- Notifications are persisted in PostgreSQL and surfaced through authenticated user-scoped APIs.
+- Unread state is represented by `read_at IS NULL`; read actions update timestamps server-side.
+- Notification realtime updates are user-scoped over:
+  - `/topic/notifications/{userId}`
+- Client notification views use realtime updates plus API refetch for authoritative list/count state.
 
 ## Docker Database Commands
 
@@ -554,6 +593,7 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 - Room chat and live presence orchestration
 - Additional game integrations beyond Connect Four and Trivia (UNO remains placeholder)
 - Department/tag modules
+- Omnichannel notifications (email/SMS/push) and digest notification systems
 - Advanced avatar rendering/customization scene tooling
 - Public social profile directory/sharing flows
 - Seasonal resets and reward payout systems
@@ -568,4 +608,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT16+` can expand moderation notifications, departmental/admin grouping controls, richer policy administration UX, and broader gameplay/social modules on top of the OA-PT15 safety baseline.
+`OA-PT17+` can expand notification preferences, department-aware segmentation, richer admin communication controls, and broader social gameplay modules on top of the OA-PT16 in-app notification baseline.

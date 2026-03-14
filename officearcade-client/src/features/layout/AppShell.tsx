@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { getNavItemsForRole } from "../navigation/navItems";
+import { NotificationBell } from "../notifications/components/NotificationBell";
 
 function resolveNavLinkClassName(isActive: boolean) {
   if (isActive) {
@@ -10,7 +11,7 @@ function resolveNavLinkClassName(isActive: boolean) {
 }
 
 export function AppShell() {
-  const { user, logout } = useAuth();
+  const { accessToken, user, logout } = useAuth();
 
   if (!user) {
     return null;
@@ -49,6 +50,11 @@ export function AppShell() {
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell
+              accessToken={accessToken}
+              userId={user.id}
+              onUnauthorized={logout}
+            />
             <span className="rounded-full border border-oa-border bg-oa-surface px-3 py-1 text-xs font-medium text-oa-text">
               {user.role}
             </span>

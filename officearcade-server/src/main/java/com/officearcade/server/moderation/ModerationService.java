@@ -11,6 +11,9 @@ import com.officearcade.server.games.connectfour.persistence.ConnectFourGameEnti
 import com.officearcade.server.identity.AppRole;
 import com.officearcade.server.lobby.persistence.RoomEntity;
 import com.officearcade.server.lobby.persistence.RoomEntityRepository;
+import com.officearcade.server.notifications.NotificationCreateCommand;
+import com.officearcade.server.notifications.NotificationService;
+import com.officearcade.server.notifications.NotificationType;
 import com.officearcade.server.moderation.dto.AdminChallengeResolutionRequest;
 import com.officearcade.server.moderation.dto.AdminChallengeReviewListResponse;
 import com.officearcade.server.moderation.dto.AdminChallengeReviewResponse;
@@ -63,6 +66,7 @@ public class ModerationService {
     private final PostMatchChallengeEntityRepository postMatchChallengeEntityRepository;
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
     private final ChallengeTypeEntityRepository challengeTypeEntityRepository;
+    private final NotificationService notificationService;
 
     public ModerationService(
             ModerationReportEntityRepository moderationReportEntityRepository,
@@ -72,7 +76,8 @@ public class ModerationService {
             ConnectFourGameEntityRepository connectFourGameEntityRepository,
             PostMatchChallengeEntityRepository postMatchChallengeEntityRepository,
             PlayerProfileEntityRepository playerProfileEntityRepository,
-            ChallengeTypeEntityRepository challengeTypeEntityRepository
+            ChallengeTypeEntityRepository challengeTypeEntityRepository,
+            NotificationService notificationService
     ) {
         this.moderationReportEntityRepository = moderationReportEntityRepository;
         this.moderationAuditLogEntityRepository = moderationAuditLogEntityRepository;
@@ -82,6 +87,7 @@ public class ModerationService {
         this.postMatchChallengeEntityRepository = postMatchChallengeEntityRepository;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
         this.challengeTypeEntityRepository = challengeTypeEntityRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -175,6 +181,7 @@ public class ModerationService {
                 null,
                 saved.getResolutionNote()
         );
+        notifyReporterReportStatus(saved);
 
         return toReportResponse(saved);
     }
@@ -202,6 +209,7 @@ public class ModerationService {
         report.setReviewedByAdmin(adminUser);
         report.setResolutionNote(note);
         ModerationReportEntity saved = moderationReportEntityRepository.save(report);
+        notifyReporterReportStatus(saved);
 
         return toReportResponse(saved);
     }
@@ -298,6 +306,7 @@ public class ModerationService {
                 saved,
                 challenge.getResolutionNote()
         );
+        notifyChallengeDisputeResolved(saved);
 
         return toChallengeSummaryResponse(saved);
     }
@@ -422,6 +431,7 @@ public class ModerationService {
                     null,
                     targetUser.getSuspensionNote()
             );
+            notifyModerationStatusChanged(targetUser, true);
             return;
         }
 
@@ -442,6 +452,7 @@ public class ModerationService {
                 null,
                 note
         );
+        notifyModerationStatusChanged(targetUser, false);
     }
 
     private void assertCanSuspendTargetUser(UserEntity targetUser) {
@@ -692,5 +703,125 @@ public class ModerationService {
 
     private static String nullableReportId(ModerationReportEntity report) {
         return report == null ? null : report.getId().toString();
+    }
+
+    private void notifyReporterReportStatus(ModerationReportEntity report) {
+        String message = report.getStatus() == ModerationReportStatus.DISMISSED
+                ? "Your report was reviewed and dismissed."
+                : "Your report was reviewed and action was recorded.";
+
+        notificationService.safeCreateNotification(new NotificationCreateCommand(
+                report.getReporterUser().getId(),
+                NotificationType.REPORT_STATUS_UPDATE,
+                "Report status updated",
+                message,
+                "/app/notifications",
+                nullableUuid(report.getSourceRoom()),
+                nullableUuid(report.getSourceGameSession()),
+                nullableUuid(report.getSourceChallenge()),
+                null,
+                report.getId(),
+                "report-status:" + report.getId() + ":" + report.getStatus().name()
+        ));
+    }
+
+    private void notifyModerationStatusChanged(UserEntity targetUser, boolean suspended) {
+        String message = suspended
+                ? "Your account status has been updated. Access is currently suspended."
+                : "Your account access has been restored.";
+
+        notificationService.safeCreateNotification(new NotificationCreateCommand(
+                targetUser.getId(),
+                NotificationType.MODERATION_STATUS_UPDATE,
+                "Account status updated",
+                message,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        ));
+    }
+
+    private void notifyChallengeDisputeResolved(PostMatchChallengeEntity challenge) {
+        String navigationPath = "/app/challenges";
+        String message;
+        if (challenge.getStatus() == ChallengeStatus.COMPLETED_CONFIRMED) {
+            message = "A disputed challenge was confirmed by admin review.";
+            notificationService.safeCreateNotification(new NotificationCreateCommand(
+                    challenge.getObligatedUser().getId(),
+                    NotificationType.RESPECT_GAINED,
+                    "Respect awarded",
+                    "Admin review awarded " + challenge.getRespectPointsAwarded() + " Respect.",
+                    navigationPath,
+                    challenge.getSourceRoom().getId(),
+                    challenge.getSourceGameSession().getId(),
+                    challenge.getId(),
+                    null,
+                    null,
+                    "respect-gained-admin:" + challenge.getId()
+            ));
+        } else if (challenge.getStatus() == ChallengeStatus.REJECTED) {
+            message = "A disputed challenge was marked not fulfilled by admin review.";
+            notificationService.safeCreateNotification(new NotificationCreateCommand(
+                    challenge.getObligatedUser().getId(),
+                    NotificationType.KARMA_APPLIED,
+                    "Karma applied",
+                    "Admin review applied " + challenge.getKarmaPointsAwarded() + " Karma.",
+                    navigationPath,
+                    challenge.getSourceRoom().getId(),
+                    challenge.getSourceGameSession().getId(),
+                    challenge.getId(),
+                    null,
+                    null,
+                    "karma-applied-admin:" + challenge.getId()
+            ));
+        } else {
+            message = "A disputed challenge was canceled without points by admin review.";
+        }
+
+        NotificationCreateCommand obligatedNotification = new NotificationCreateCommand(
+                challenge.getObligatedUser().getId(),
+                NotificationType.CHALLENGE_DISPUTE_RESOLVED,
+                "Challenge dispute resolved",
+                message,
+                navigationPath,
+                challenge.getSourceRoom().getId(),
+                challenge.getSourceGameSession().getId(),
+                challenge.getId(),
+                null,
+                null,
+                "challenge-dispute-resolved:" + challenge.getId() + ":" + challenge.getStatus().name()
+        );
+
+        NotificationCreateCommand beneficiaryNotification = new NotificationCreateCommand(
+                challenge.getBeneficiaryUser().getId(),
+                NotificationType.CHALLENGE_DISPUTE_RESOLVED,
+                "Challenge dispute resolved",
+                message,
+                navigationPath,
+                challenge.getSourceRoom().getId(),
+                challenge.getSourceGameSession().getId(),
+                challenge.getId(),
+                null,
+                null,
+                "challenge-dispute-resolved:" + challenge.getId() + ":" + challenge.getStatus().name()
+        );
+
+        notificationService.safeCreateNotifications(List.of(obligatedNotification, beneficiaryNotification));
+    }
+
+    private static UUID nullableUuid(RoomEntity roomEntity) {
+        return roomEntity == null ? null : roomEntity.getId();
+    }
+
+    private static UUID nullableUuid(ConnectFourGameEntity gameEntity) {
+        return gameEntity == null ? null : gameEntity.getId();
+    }
+
+    private static UUID nullableUuid(PostMatchChallengeEntity challengeEntity) {
+        return challengeEntity == null ? null : challengeEntity.getId();
     }
 }
