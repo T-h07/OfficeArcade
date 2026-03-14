@@ -43,6 +43,13 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - Upgraded game-adjacent panels (Connect Four, Trivia, UNO) with clearer match-state presentation and game-specific identity accents.
 - Functionality and gameplay rules remain unchanged; later OA-UX PTs can continue deeper module polish (store/profile/avatar and motion detail).
 
+## OA-UX-PT04 Store, Inventory, and Reward Presentation Refresh
+
+- Refreshed Store and Inventory into a stronger progression/reward experience with clearer visual hierarchy around unlocks, ownership, and loadout state.
+- Added reusable reward-surface components for Respect balance, category tabs, rarity badges, and cosmetic item cards.
+- Strengthened rarity presentation (common/rare/epic), affordability cues, and equipped/owned/purchasable state styling.
+- Kept purchase/equip backend logic unchanged; this PT is visual and interaction presentation focused.
+
 ## OA-PT19 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior

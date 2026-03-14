@@ -1,8 +1,13 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { PageHero } from "../../layout/PageHero";
+import { InventoryItemCard } from "../components/InventoryItemCard";
+import { RewardCategoryTabs } from "../components/RewardCategoryTabs";
+import { RespectBalanceCard } from "../components/RespectBalanceCard";
+import { formatCategoryLabel } from "../components/storePresentation";
 import { useInventory } from "../hooks/useInventory";
-import type { CosmeticCategory, InventoryItem } from "../types/store.types";
+import type { CosmeticCategory } from "../types/store.types";
 
 const CATEGORY_OPTIONS: Array<CosmeticCategory | "ALL"> = [
   "ALL",
@@ -13,27 +18,6 @@ const CATEGORY_OPTIONS: Array<CosmeticCategory | "ALL"> = [
   "BADGE",
   "ACCESSORY"
 ];
-
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return "-";
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-  return parsed.toLocaleString();
-}
-
-function rarityBadgeClass(rarity: InventoryItem["rarity"]) {
-  if (rarity === "EPIC") {
-    return "oa-chip-route";
-  }
-  if (rarity === "RARE") {
-    return "oa-chip-info";
-  }
-  return "";
-}
 
 export function InventoryPage() {
   const { accessToken, logout, user } = useAuth();
@@ -59,6 +43,31 @@ export function InventoryPage() {
     }
     return all.filter((item) => item.category === categoryFilter);
   }, [inventory?.items, categoryFilter]);
+  const categoryCounts = useMemo(() => {
+    const all = inventory?.items ?? [];
+    const next: Record<CosmeticCategory, number> = {
+      HAT: 0,
+      GLASSES: 0,
+      OUTFIT: 0,
+      PROFILE_FRAME: 0,
+      BADGE: 0,
+      ACCESSORY: 0
+    };
+    all.forEach((item) => {
+      next[item.category] += 1;
+    });
+    return next;
+  }, [inventory?.items]);
+  const categoryTabOptions = CATEGORY_OPTIONS.map((option) => ({
+    value: option,
+    label: option === "ALL" ? "All Categories" : formatCategoryLabel(option),
+    count: option === "ALL" ? inventory?.ownedCount ?? 0 : categoryCounts[option]
+  }));
+  const equippedItemLabels = summary?.equippedItems ?? [];
+  const uniqueOwnedCategories = useMemo(() => {
+    const all = inventory?.items ?? [];
+    return new Set(all.map((item) => item.category)).size;
+  }, [inventory?.items]);
 
   if (!user) {
     return null;
@@ -67,10 +76,26 @@ export function InventoryPage() {
   return (
     <section className="oa-page">
       <PageHero
-        kicker="Personalization"
+        kicker="Collection Vault"
         title="My Inventory"
-        subtitle="Manage owned cosmetics and active loadout slots."
-        rightSlot={<span className="oa-chip oa-chip-route text-sm font-semibold">Respect: {summary?.respectBalance ?? 0}</span>}
+        subtitle="Review owned cosmetics, manage equipped slots, and keep your profile loadout tuned."
+        rightSlot={(
+          <RespectBalanceCard
+            balance={summary?.respectBalance ?? 0}
+            ownedCount={inventory?.ownedCount}
+            equippedCount={inventory?.equippedCount}
+            compact
+          />
+        )}
+        footerSlot={(
+          <>
+            <span className="oa-chip">Categories Built: {uniqueOwnedCategories}</span>
+            <span className="oa-chip oa-chip-route">Equipped Slots: {summary?.equippedCount ?? 0}</span>
+            <Link to="/app/profile" className="oa-btn oa-btn-secondary px-3 py-1.5 text-xs">
+              Open Profile Loadout
+            </Link>
+          </>
+        )}
       />
 
       {errorMessage ? (
@@ -92,7 +117,7 @@ export function InventoryPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-4">
         <article className="oa-kpi-card">
           <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Owned Items</p>
           <p className="mt-2 text-2xl font-semibold text-oa-text">{inventory?.ownedCount ?? 0}</p>
@@ -102,41 +127,53 @@ export function InventoryPage() {
           <p className="mt-2 text-2xl font-semibold text-oa-text">{inventory?.equippedCount ?? 0}</p>
         </article>
         <article className="oa-kpi-card">
-          <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Equipped Summary</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Equipped Categories</p>
           <p className="mt-2 text-sm text-oa-muted">
             {(summary?.equippedItems ?? []).map((item) => item.category).join(", ") || "None"}
           </p>
         </article>
+        <article className="oa-kpi-card">
+          <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Collection Coverage</p>
+          <p className="mt-2 text-2xl font-semibold text-oa-text">{uniqueOwnedCategories}</p>
+        </article>
       </section>
 
-      <section className="oa-panel-soft">
-        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-          <label className="text-xs uppercase tracking-[0.12em] text-oa-muted">
-            Category
-            <select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value as CosmeticCategory | "ALL")}
-              className="oa-select mt-1"
-              disabled={isLoading || isMutating}
-            >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option === "ALL" ? "All Categories" : option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={() => {
-                void refresh();
-              }}
-              className="oa-btn oa-btn-secondary px-3 py-2"
-              disabled={isLoading || isMutating}
-            >
-              {isLoading ? "Refreshing..." : "Refresh"}
-            </button>
+      <section className="oa-panel-soft space-y-4">
+        <RewardCategoryTabs
+          label="Collection Category"
+          options={categoryTabOptions}
+          selected={categoryFilter}
+          onSelect={setCategoryFilter}
+          disabled={isLoading || isMutating}
+        />
+        <div className="oa-reward-summary-strip">
+          <p className="text-xs text-oa-muted">Switch categories to focus on loadout slots and quickly equip from owned cosmetics.</p>
+          <button
+            type="button"
+            onClick={() => {
+              void refresh();
+            }}
+            className="oa-btn oa-btn-secondary px-3 py-2"
+            disabled={isLoading || isMutating}
+          >
+            {isLoading ? "Refreshing..." : "Refresh Inventory"}
+          </button>
+        </div>
+      </section>
+
+      <section className="oa-reward-summary-strip">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.16em] text-oa-muted">Equipped Loadout</p>
+          <div className="flex flex-wrap gap-2">
+            {equippedItemLabels.length === 0 ? (
+              <span className="oa-chip">No cosmetics equipped yet.</span>
+            ) : (
+              equippedItemLabels.map((item) => (
+                <span key={item.cosmeticItemId} className="oa-chip oa-chip-route">
+                  {formatCategoryLabel(item.category)}: {item.displayName}
+                </span>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -148,48 +185,17 @@ export function InventoryPage() {
           </div>
         ) : (
           filteredItems.map((item) => (
-            <article
+            <InventoryItemCard
               key={item.cosmeticItemId}
-              className="oa-action-card"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-base font-semibold text-oa-text">{item.displayName}</h3>
-                <span className={`oa-chip ${rarityBadgeClass(item.rarity)}`}>
-                  {item.rarity}
-                </span>
-              </div>
-
-              <p className="mt-2 text-sm text-oa-muted">{item.description}</p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="oa-chip">
-                  {item.category}
-                </span>
-                <span className="oa-chip">
-                  Acquired: {formatDateTime(item.acquiredAt)}
-                </span>
-                {item.equipped ? (
-                  <span className="oa-chip oa-chip-info">
-                    Equipped
-                  </span>
-                ) : null}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (item.equipped) {
-                    void unequip(item.cosmeticItemId);
-                    return;
-                  }
-                  void equip(item.cosmeticItemId);
-                }}
-                className="oa-btn oa-btn-primary mt-4 w-full px-3 py-2"
-                disabled={isMutating || isLoading}
-              >
-                {item.equipped ? "Unequip" : "Equip"}
-              </button>
-            </article>
+              item={item}
+              disabled={isMutating || isLoading}
+              onEquip={(itemId) => {
+                void equip(itemId);
+              }}
+              onUnequip={(itemId) => {
+                void unequip(itemId);
+              }}
+            />
           ))
         )}
       </section>
