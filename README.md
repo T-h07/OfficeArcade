@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT10 Implemented Scope
+## OA-PT11 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -61,6 +61,13 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - Inventory page for owned item management and equip/unequip actions
   - dashboard cosmetic summary (owned count, equipped count, equipped loadout)
   - purchase/equip state remains consistent after refresh/restart
+- Added avatar loadout and profile customization presentation:
+  - new authenticated profile aggregate endpoint: `GET /api/profile/me`
+  - dedicated Profile / Customization page with category-based equip controls
+  - layered avatar preview driven by persisted equipped cosmetics
+  - deterministic layer ordering for visual loadout rendering
+  - profile preview reacts immediately to equip/unequip and persists after refresh/restart
+  - graceful fallback visual behavior for unknown/missing asset keys
 
 ## Auth + Admin Scope (Current)
 
@@ -230,7 +237,17 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - The seeded employee profile is elevated to a usable Respect balance baseline for purchase testing.
 - Respect remains the only purchase currency in OA-PT10; Karma is not spendable.
 
-## Realtime + Game + Reputation + Store Notes (OA-PT10)
+## Profile / Loadout Seed Notes (OA-PT11)
+
+- Flyway seeds a default owned/equipped cosmetic loadout for the seeded employee account to make profile rendering immediately testable.
+- The profile aggregate endpoint returns:
+  - owned cosmetics
+  - equipped cosmetics
+  - pre-ordered avatar layer metadata
+- Layering order is deterministic:
+  - `BASE_BODY`, `OUTFIT`, `ACCESSORY`, `GLASSES`, `HAT`, `PROFILE_FRAME`, `BADGE`
+
+## Realtime + Game + Reputation + Store + Profile Notes (OA-PT11)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -246,6 +263,9 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Respect/Karma updates are persisted on player profiles and reflected in dashboard + challenge history views.
 - Store catalog and inventory data are persisted and API-driven.
 - Purchase/equip correctness is server-authoritative; client state is response/refetch driven.
+- Profile avatar preview uses `preview_asset_key` conventions from cosmetic catalog rows.
+  - Example key format: `category.variant-name` (e.g., `hat.classic-cap`, `frame.neon`)
+  - Frontend maps keys to layered placeholder render presets with fallback visuals.
 
 ## Docker Database Commands
 
@@ -342,6 +362,7 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 - Leaderboard systems
 - Department/tag modules
 - Advanced avatar rendering/customization scene tooling
+- Public social profile directory/sharing flows
 
 ## Branch Strategy
 
@@ -353,4 +374,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT11+` will expand progression systems (for example advanced avatar customization/rendering and broader post-match reward integrations) on top of the OA-PT10 store/inventory foundation.
+`OA-PT12+` can expand profile/social visibility and richer cosmetic presentation while preserving the OA-PT11 persisted loadout foundation.

@@ -15,7 +15,9 @@ import com.officearcade.server.users.UserAccountService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -90,10 +92,16 @@ public class EmployeeDashboardService {
         int resolvedChallengeCount = postMatchChallengeService.getResolvedChallengeCount(user.id());
         List<DashboardChallengeSummaryResponse> recentChallenges = postMatchChallengeService
                 .getRecentChallengeSummaries(user.id(), 3);
-        int ownedCosmeticCount = (int) userOwnedCosmeticEntityRepository.countByUser_Id(userId);
+        Set<UUID> ownedCosmeticItemIds = new HashSet<>();
+        userOwnedCosmeticEntityRepository.findAllByUser_IdOrderByAcquiredAtDesc(userId)
+                .forEach(entry -> ownedCosmeticItemIds.add(entry.getCosmeticItem().getId()));
+
+        int ownedCosmeticCount = ownedCosmeticItemIds.size();
         List<DashboardEquippedCosmeticResponse> equippedCosmetics = userEquippedCosmeticEntityRepository
                 .findAllByUser_IdOrderByEquippedAtDesc(userId)
                 .stream()
+                .filter(entry -> entry.getCosmeticItem().isEnabled())
+                .filter(entry -> ownedCosmeticItemIds.contains(entry.getCosmeticItem().getId()))
                 .map(entry -> new DashboardEquippedCosmeticResponse(
                         entry.getCosmeticItem().getId().toString(),
                         entry.getCosmeticItem().getCode(),
