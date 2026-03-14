@@ -13,6 +13,7 @@ import com.officearcade.server.lobby.persistence.RoomEntity;
 import com.officearcade.server.lobby.persistence.RoomEntityRepository;
 import com.officearcade.server.lobby.persistence.RoomMemberEntity;
 import com.officearcade.server.lobby.persistence.RoomMemberEntityRepository;
+import com.officearcade.server.playlimits.PlayLimitService;
 import com.officearcade.server.users.persistence.UserEntity;
 import java.time.Instant;
 import java.util.List;
@@ -33,19 +34,22 @@ public class ConnectFourGameService {
     private final ConnectFourGameEntityRepository connectFourGameEntityRepository;
     private final ConnectFourRealtimePublisher connectFourRealtimePublisher;
     private final PostMatchChallengeService postMatchChallengeService;
+    private final PlayLimitService playLimitService;
 
     public ConnectFourGameService(
             RoomEntityRepository roomEntityRepository,
             RoomMemberEntityRepository roomMemberEntityRepository,
             ConnectFourGameEntityRepository connectFourGameEntityRepository,
             ConnectFourRealtimePublisher connectFourRealtimePublisher,
-            PostMatchChallengeService postMatchChallengeService
+            PostMatchChallengeService postMatchChallengeService,
+            PlayLimitService playLimitService
     ) {
         this.roomEntityRepository = roomEntityRepository;
         this.roomMemberEntityRepository = roomMemberEntityRepository;
         this.connectFourGameEntityRepository = connectFourGameEntityRepository;
         this.connectFourRealtimePublisher = connectFourRealtimePublisher;
         this.postMatchChallengeService = postMatchChallengeService;
+        this.playLimitService = playLimitService;
     }
 
     @Transactional(readOnly = true)
@@ -77,6 +81,10 @@ public class ConnectFourGameService {
             );
         }
 
+        for (RoomMemberEntity member : members) {
+            playLimitService.assertEligibleForPlayableGame(member.getUser().getId(), CONNECT_FOUR_CODE);
+        }
+
         UserEntity playerOne = members.get(0).getUser();
         UserEntity playerTwo = members.get(1).getUser();
 
@@ -98,6 +106,7 @@ public class ConnectFourGameService {
         game.setCurrentTurnUser(playerOne);
         game.setWinnerUser(null);
         game.setDraw(false);
+        game.setPlayLimitsApplied(false);
         game.setMoveCount(0);
         game.setBoardState(ConnectFourRulesEngine.encodeBoard(emptyBoard));
         game.setStartedAt(Instant.now());
@@ -183,6 +192,12 @@ public class ConnectFourGameService {
 
         if (saved.getStatus() == ConnectFourGameStatus.FINISHED && !saved.isDraw()) {
             postMatchChallengeService.createForCompletedConnectFour(saved);
+        }
+
+        if (saved.getStatus() == ConnectFourGameStatus.FINISHED && !saved.isPlayLimitsApplied()) {
+            playLimitService.recordCompletedMatchForUsers(List.of(playerOneId, playerTwoId));
+            saved.setPlayLimitsApplied(true);
+            saved = connectFourGameEntityRepository.save(saved);
         }
 
         connectFourRealtimePublisher.publishGameEvent(

@@ -19,6 +19,7 @@ import com.officearcade.server.lobby.persistence.RoomMemberEntity;
 import com.officearcade.server.lobby.persistence.RoomMemberEntityRepository;
 import com.officearcade.server.lobby.realtime.LobbyRealtimeEventType;
 import com.officearcade.server.lobby.realtime.LobbyRealtimePublisher;
+import com.officearcade.server.playlimits.PlayLimitService;
 import com.officearcade.server.users.persistence.UserEntity;
 import com.officearcade.server.users.persistence.UserEntityRepository;
 import java.util.HashMap;
@@ -49,6 +50,7 @@ public class LobbyService {
     private final LobbyRealtimePublisher lobbyRealtimePublisher;
     private final ConnectFourGameService connectFourGameService;
     private final TriviaGameService triviaGameService;
+    private final PlayLimitService playLimitService;
 
     public LobbyService(
             RoomEntityRepository roomEntityRepository,
@@ -58,7 +60,8 @@ public class LobbyService {
             PasswordEncoder passwordEncoder,
             LobbyRealtimePublisher lobbyRealtimePublisher,
             ConnectFourGameService connectFourGameService,
-            TriviaGameService triviaGameService
+            TriviaGameService triviaGameService,
+            PlayLimitService playLimitService
     ) {
         this.roomEntityRepository = roomEntityRepository;
         this.roomMemberEntityRepository = roomMemberEntityRepository;
@@ -68,6 +71,7 @@ public class LobbyService {
         this.lobbyRealtimePublisher = lobbyRealtimePublisher;
         this.connectFourGameService = connectFourGameService;
         this.triviaGameService = triviaGameService;
+        this.playLimitService = playLimitService;
     }
 
     @Transactional(readOnly = true)
@@ -144,6 +148,7 @@ public class LobbyService {
 
         UserEntity hostUser = getRequiredUser(userId);
         GameTypeEntity gameType = resolveEnabledGameType(request.gameTypeCode());
+        playLimitService.assertEligibleForPlayableGame(userId, gameType.getCode());
         String normalizedRoomName = normalizeRoomName(request.roomName());
         boolean privateRoom = request.isPrivate();
         String passwordHash = resolveRoomPasswordHash(privateRoom, request.password());
@@ -185,6 +190,7 @@ public class LobbyService {
         assertRoomCanBeJoined(room);
         assertRoomGameTypeEnabled(room);
         assertUserNotAlreadyInRoom(userId, roomUuid);
+        playLimitService.assertEligibleForPlayableGame(userId, room.getGameType().getCode());
         assertNoActiveConnectFourGame(room);
         assertNoActiveTriviaGame(room);
         validateJoinPassword(room, request.password());

@@ -5,6 +5,8 @@ type LobbyRoomBrowserProps = {
   currentUserId: string;
   myRoomId: string | null;
   isBusy: boolean;
+  playBlocked: boolean;
+  blockMessage: string | null;
   onJoinPublic: (roomId: string) => void;
   onJoinPrivate: (roomId: string, roomName: string) => void;
 };
@@ -24,6 +26,8 @@ export function LobbyRoomBrowser({
   currentUserId,
   myRoomId,
   isBusy,
+  playBlocked,
+  blockMessage,
   onJoinPublic,
   onJoinPrivate
 }: LobbyRoomBrowserProps) {
@@ -35,6 +39,12 @@ export function LobbyRoomBrowser({
       </div>
 
       <div className="mt-4 space-y-3">
+        {playBlocked && blockMessage ? (
+          <div className="rounded-xl border border-amber-300/45 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+            {blockMessage}
+          </div>
+        ) : null}
+
         {rooms.length === 0 ? (
           <div className="rounded-xl border border-oa-border bg-black/20 px-4 py-5 text-sm text-oa-muted">
             No open rooms yet. Host the first one.
@@ -44,7 +54,7 @@ export function LobbyRoomBrowser({
             const isMyRoom = room.id === myRoomId;
             const isHost = room.hostUserId === currentUserId;
             const isFull = room.status === "FULL" || room.currentPlayers >= room.maxPlayers;
-            const canJoin = !isMyRoom && !myRoomId && room.status === "OPEN" && !isFull;
+            const canJoin = !playBlocked && !isMyRoom && !myRoomId && room.status === "OPEN" && !isFull;
 
             return (
               <article

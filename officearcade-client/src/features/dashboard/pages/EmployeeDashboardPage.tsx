@@ -1,4 +1,5 @@
 import { useAuth } from "../../auth/AuthContext";
+import { usePlayLimits } from "../../play-limits/hooks/usePlayLimits";
 import { KpiTile } from "../components/KpiTile";
 import { useEmployeeDashboard } from "../hooks/useEmployeeDashboard";
 
@@ -12,6 +13,21 @@ function formatDateTime(value: string) {
 
 function clampPercentage(value: number) {
   return Math.max(0, Math.min(100, value));
+}
+
+function formatDuration(seconds: number) {
+  const safe = Math.max(seconds, 0);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const remainingSeconds = safe % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+  return `${remainingSeconds}s`;
 }
 
 function DashboardLoadingState() {
@@ -31,6 +47,13 @@ function DashboardLoadingState() {
 export function EmployeeDashboardPage() {
   const { accessToken, logout, user } = useAuth();
   const { dashboard, isLoading, errorMessage, refresh } = useEmployeeDashboard(accessToken, logout);
+  const {
+    summary: playLimits,
+    isLoading: isPlayLimitsLoading,
+    errorMessage: playLimitsError,
+    cooldownRemainingSecondsLive,
+    refresh: refreshPlayLimits
+  } = usePlayLimits(accessToken, logout);
 
   if (!user) {
     return null;
@@ -89,6 +112,60 @@ export function EmployeeDashboardPage() {
                 </span>
               </div>
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Play Limits</p>
+                <h3 className="mt-1 text-lg font-semibold text-oa-text">Daily Cap and Cooldown Status</h3>
+              </div>
+              <button
+                type="button"
+                onClick={refreshPlayLimits}
+                className="rounded-lg border border-oa-border bg-black/20 px-3 py-1.5 text-xs text-oa-text transition-colors hover:border-oa-accent/45"
+              >
+                Refresh Eligibility
+              </button>
+            </div>
+
+            {isPlayLimitsLoading ? (
+              <p className="mt-3 text-sm text-oa-muted">Loading play-limit status...</p>
+            ) : null}
+
+            {!isPlayLimitsLoading && playLimitsError ? (
+              <p className="mt-3 rounded-lg border border-oa-danger/40 bg-oa-danger/10 px-3 py-2 text-sm text-oa-danger">
+                {playLimitsError}
+              </p>
+            ) : null}
+
+            {!isPlayLimitsLoading && !playLimitsError && playLimits ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <KpiTile label="Daily Limit" value={`${playLimits.dailyGameLimit}`} helperText="Completed matches/day" />
+                <KpiTile label="Played Today" value={`${playLimits.gamesPlayedToday}`} helperText={`Date: ${playLimits.gamesPlayedDate}`} />
+                <KpiTile label="Remaining" value={`${playLimits.gamesRemainingToday}`} helperText="Matches left today" />
+                <KpiTile
+                  label="Eligibility"
+                  value={playLimits.canPlayNow ? "Ready" : "Blocked"}
+                  helperText={playLimits.eligibilityReason}
+                />
+              </div>
+            ) : null}
+
+            {!isPlayLimitsLoading && !playLimitsError && playLimits && !playLimits.canPlayNow ? (
+              <div className="mt-3 rounded-lg border border-amber-300/45 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+                {playLimits.eligibilityReason === "COOLDOWN_ACTIVE" ? (
+                  <p>
+                    Cooldown active. Next game available in <span className="font-semibold">{formatDuration(cooldownRemainingSecondsLive)}</span>.
+                  </p>
+                ) : (
+                  <p>
+                    Daily play limit reached. Reset at{" "}
+                    <span className="font-semibold text-oa-text">{formatDateTime(playLimits.nextDailyResetAt)}</span>.
+                  </p>
+                )}
+              </div>
+            ) : null}
           </section>
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -18,6 +18,7 @@ import com.officearcade.server.lobby.persistence.RoomEntity;
 import com.officearcade.server.lobby.persistence.RoomEntityRepository;
 import com.officearcade.server.lobby.persistence.RoomMemberEntity;
 import com.officearcade.server.lobby.persistence.RoomMemberEntityRepository;
+import com.officearcade.server.playlimits.PlayLimitService;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntity;
 import com.officearcade.server.profiles.persistence.PlayerProfileEntityRepository;
 import com.officearcade.server.users.persistence.UserEntity;
@@ -50,6 +51,7 @@ public class TriviaGameService {
     private final TriviaRoundAnswerEntityRepository triviaRoundAnswerEntityRepository;
     private final TriviaRealtimePublisher triviaRealtimePublisher;
     private final PlayerProfileEntityRepository playerProfileEntityRepository;
+    private final PlayLimitService playLimitService;
 
     public TriviaGameService(
             RoomEntityRepository roomEntityRepository,
@@ -58,7 +60,8 @@ public class TriviaGameService {
             TriviaQuestionEntityRepository triviaQuestionEntityRepository,
             TriviaRoundAnswerEntityRepository triviaRoundAnswerEntityRepository,
             TriviaRealtimePublisher triviaRealtimePublisher,
-            PlayerProfileEntityRepository playerProfileEntityRepository
+            PlayerProfileEntityRepository playerProfileEntityRepository,
+            PlayLimitService playLimitService
     ) {
         this.roomEntityRepository = roomEntityRepository;
         this.roomMemberEntityRepository = roomMemberEntityRepository;
@@ -67,6 +70,7 @@ public class TriviaGameService {
         this.triviaRoundAnswerEntityRepository = triviaRoundAnswerEntityRepository;
         this.triviaRealtimePublisher = triviaRealtimePublisher;
         this.playerProfileEntityRepository = playerProfileEntityRepository;
+        this.playLimitService = playLimitService;
     }
 
     @Transactional(readOnly = true)
@@ -96,6 +100,10 @@ public class TriviaGameService {
                     HttpStatus.CONFLICT,
                     "Trivia Battle requires exactly 2 room members to start."
             );
+        }
+
+        for (RoomMemberEntity member : members) {
+            playLimitService.assertEligibleForPlayableGame(member.getUser().getId(), TRIVIA_CODE);
         }
 
         int totalRounds = room.getRounds();
@@ -144,6 +152,7 @@ public class TriviaGameService {
         game.setPlayerTwoScore(0);
         game.setWinnerUser(null);
         game.setDraw(false);
+        game.setPlayLimitsApplied(false);
         game.setStartedAt(Instant.now());
         game.setEndedAt(null);
 
@@ -229,6 +238,11 @@ public class TriviaGameService {
             eventType = game.getStatus() == TriviaGameStatus.FINISHED
                     ? TriviaRealtimeEventType.GAME_FINISHED
                     : TriviaRealtimeEventType.ROUND_RESOLVED;
+        }
+
+        if (game.getStatus() == TriviaGameStatus.FINISHED && !game.isPlayLimitsApplied()) {
+            playLimitService.recordCompletedMatchForUsers(List.of(playerOne.getId(), playerTwo.getId()));
+            game.setPlayLimitsApplied(true);
         }
 
         TriviaGameEntity saved = triviaGameEntityRepository.save(game);

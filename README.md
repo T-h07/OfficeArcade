@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT13 Implemented Scope
+## OA-PT14 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -99,6 +99,28 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
     - TRIVIA rooms require `maxPlayers = 2`
     - joining is blocked while an active Trivia Battle is in progress
     - if a player leaves during an active Trivia match, room closes cleanly
+- Added cooldown and daily play-limit enforcement foundation:
+  - server-authoritative play eligibility with persisted per-user state
+  - default policy:
+    - daily completed game limit: `5`
+    - cooldown after completed match: `90 minutes`
+    - reset timezone: `Europe/Berlin`
+  - daily reset logic based on server-side date in configured timezone
+  - new authenticated play-limit API:
+    - `GET /api/play-limits/me`
+    - `GET /api/play-limits/me/eligibility`
+  - blocked reasons returned as machine-readable states:
+    - `ELIGIBLE`
+    - `COOLDOWN_ACTIVE`
+    - `DAILY_LIMIT_REACHED`
+  - eligibility enforcement integrated into lobby + game flows:
+    - blocked users cannot create/join playable rooms (`CONNECT_FOUR`, `TRIVIA`)
+    - game start revalidates all participants
+  - completed matches update per-user counters and cooldown timestamps exactly once
+  - frontend now surfaces:
+    - dashboard daily usage + cooldown summary
+    - lobby blocked state with reason, remaining time, and reset visibility
+    - countdown UX tied to server-authoritative rechecks
 
 ## Auth + Admin Scope (Current)
 
@@ -185,6 +207,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `board_state` (42-char encoded 7x6 board)
 - `move_count`
 - `is_draw`
+- `play_limits_applied`
 - `created_at`
 - `started_at`
 - `ended_at`
@@ -223,9 +246,20 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `player_two_score`
 - `winner_user_id` (FK to `users`, nullable)
 - `is_draw`
+- `play_limits_applied`
 - `created_at`
 - `started_at`
 - `ended_at`
+- `updated_at`
+
+### `player_play_limits`
+
+- `user_id` (UUID, PK/FK to `users`)
+- `games_played_date`
+- `games_played_today`
+- `cooldown_until`
+- `last_completed_game_at`
+- `created_at`
 - `updated_at`
 
 ### `trivia_round_answers`
@@ -336,7 +370,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Karma leaderboard is intentionally ordered ascending (lower karma ranks higher).
 - API exposes current-user ranking context even if the user is outside the visible top list.
 
-## Realtime + Game + Reputation + Store + Profile + Leaderboard Notes (OA-PT13)
+## Realtime + Game + Reputation + Store + Profile + Leaderboard + Play-Limits Notes (OA-PT14)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -360,6 +394,10 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
   - Example key format: `category.variant-name` (e.g., `hat.classic-cap`, `frame.neon`)
   - Frontend maps keys to layered placeholder render presets with fallback visuals.
 - Leaderboards use normal authenticated HTTP fetches (no dedicated realtime ranking channel in OA-PT12).
+- Play-limit eligibility is server-authoritative and persisted in `player_play_limits`.
+- Daily counts reset by server date in timezone `Europe/Berlin`.
+- Default PT14 policy is `5` completed games/day and `90` minutes cooldown per completed match.
+- Play-limit state survives refresh, app restart, and backend restart.
 
 ## Docker Database Commands
 
@@ -468,4 +506,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT14+` can expand game variety, broader post-match systems, richer social profile visibility, and seasonal competition foundations on top of the OA-PT13 gameplay baseline.
+`OA-PT15+` can expand policy controls (admin-tunable cooldown/daily caps), scheduling options, broader game variety, and deeper social/progression systems on top of the OA-PT14 enforcement baseline.

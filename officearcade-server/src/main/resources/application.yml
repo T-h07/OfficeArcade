@@ -36,3 +36,7 @@ officearcade:
       issuer: officearcade-server
       secret: dev-officearcade-jwt-secret-change-before-production-2026-pt02
       access-token-ttl-minutes: 480
+  play-limits:
+    daily-game-limit: 5
+    cooldown-minutes: 90
+    timezone: Europe/Berlin

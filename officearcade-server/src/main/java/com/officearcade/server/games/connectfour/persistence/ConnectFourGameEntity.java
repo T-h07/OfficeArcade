@@ -59,6 +59,9 @@ public class ConnectFourGameEntity {
     @Column(name = "is_draw", nullable = false)
     private boolean draw;
 
+    @Column(name = "play_limits_applied", nullable = false)
+    private boolean playLimitsApplied;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -166,6 +169,14 @@ public class ConnectFourGameEntity {
 
     public void setDraw(boolean draw) {
         this.draw = draw;
+    }
+
+    public boolean isPlayLimitsApplied() {
+        return playLimitsApplied;
+    }
+
+    public void setPlayLimitsApplied(boolean playLimitsApplied) {
+        this.playLimitsApplied = playLimitsApplied;
     }
 
     public Instant getCreatedAt() {
