@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT11 Implemented Scope
+## OA-PT12 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -68,6 +68,19 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - deterministic layer ordering for visual loadout rendering
   - profile preview reacts immediately to equip/unequip and persists after refresh/restart
   - graceful fallback visual behavior for unknown/missing asset keys
+- Added leaderboards and rankings:
+  - authenticated leaderboard API with type metadata and multi-metric ranking views
+  - supported leaderboard views:
+    - Wins
+    - Win Rate
+    - Level
+    - Respect
+    - Karma (lower is better)
+    - Games Played
+  - deterministic rank ordering with stable tie-breakers
+  - current-user rank context returned even when outside visible top list
+  - compact profile-aware presentation support (profile frame/badge markers in ranking entries)
+  - dedicated Leaderboards page with metric tabs, ranked rows, top-3 emphasis, and "Your Rank" summary
 
 ## Auth + Admin Scope (Current)
 
@@ -247,7 +260,15 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Layering order is deterministic:
   - `BASE_BODY`, `OUTFIT`, `ACCESSORY`, `GLASSES`, `HAT`, `PROFILE_FRAME`, `BADGE`
 
-## Realtime + Game + Reputation + Store + Profile Notes (OA-PT11)
+## Leaderboard Rules (OA-PT12)
+
+- Ranking data is sourced from persisted `users` + `player_profiles` (+ equipped profile markers).
+- Tie handling is deterministic and stable through explicit tie-break ordering.
+- Win Rate leaderboard applies a minimum completed-match threshold (`wins + losses >= 5`).
+- Karma leaderboard is intentionally ordered ascending (lower karma ranks higher).
+- API exposes current-user ranking context even if the user is outside the visible top list.
+
+## Realtime + Game + Reputation + Store + Profile + Leaderboard Notes (OA-PT12)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -266,6 +287,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Profile avatar preview uses `preview_asset_key` conventions from cosmetic catalog rows.
   - Example key format: `category.variant-name` (e.g., `hat.classic-cap`, `frame.neon`)
   - Frontend maps keys to layered placeholder render presets with fallback visuals.
+- Leaderboards use normal authenticated HTTP fetches (no dedicated realtime ranking channel in OA-PT12).
 
 ## Docker Database Commands
 
@@ -359,10 +381,10 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 
 - Room chat and live presence orchestration
 - Additional game integrations (UNO/TRIVIA remain placeholders)
-- Leaderboard systems
 - Department/tag modules
 - Advanced avatar rendering/customization scene tooling
 - Public social profile directory/sharing flows
+- Seasonal resets and reward payout systems
 
 ## Branch Strategy
 
@@ -374,4 +396,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT12+` can expand profile/social visibility and richer cosmetic presentation while preserving the OA-PT11 persisted loadout foundation.
+`OA-PT13+` can expand game-specific seasonal competition, richer social profile visibility, and additional ranking dimensions on top of the OA-PT12 leaderboard foundation.

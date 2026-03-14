@@ -23,6 +23,11 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["ADMIN", "EMPLOYEE"]
   },
   {
+    label: "Leaderboards",
+    to: "/app/leaderboards",
+    roles: ["ADMIN", "EMPLOYEE"]
+  },
+  {
     label: "Store",
     to: "/app/store",
     roles: ["ADMIN", "EMPLOYEE"]
