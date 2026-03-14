@@ -34,6 +34,26 @@ function statusBadgeClass(status: ChallengeSummary["status"]) {
   return "";
 }
 
+function roleBadgeClass(role: ChallengeSummary["myRole"]) {
+  if (role === "BENEFICIARY") {
+    return "oa-chip oa-chip-success";
+  }
+  if (role === "OBLIGATED") {
+    return "oa-chip oa-chip-warning";
+  }
+  return "oa-chip oa-chip-info";
+}
+
+function roleLabel(role: ChallengeSummary["myRole"]) {
+  if (role === "BENEFICIARY") {
+    return "Confirmer";
+  }
+  if (role === "OBLIGATED") {
+    return "Obligated";
+  }
+  return "Admin Review";
+}
+
 export function ChallengesPage() {
   const { accessToken, logout, user } = useAuth();
   const { data, isLoading, isMutating, errorMessage, actionMessage, refresh, confirm, reject, dispute, clearActionMessage } =
@@ -87,7 +107,14 @@ export function ChallengesPage() {
       <PageHero
         kicker="Reputation Layer"
         title="Respect & Karma Challenges"
-        subtitle="Review challenge outcomes, confirm completions, or escalate disputes."
+        subtitle="Track obligations, confirm outcomes, and escalate disputes when needed."
+        footerSlot={
+          <>
+            <span className="oa-chip">Total {data?.totalCount ?? 0}</span>
+            <span className="oa-chip oa-chip-warning">Pending {data?.pendingCount ?? 0}</span>
+            <span className="oa-chip oa-chip-success">Resolved {data?.resolvedCount ?? 0}</span>
+          </>
+        }
       />
 
       {errorMessage ? (
@@ -108,21 +135,6 @@ export function ChallengesPage() {
           </button>
         </div>
       ) : null}
-
-      <section className="grid gap-3 sm:grid-cols-3">
-        <article className="oa-kpi-card">
-          <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Total</p>
-          <p className="mt-2 text-2xl font-semibold text-oa-text">{data?.totalCount ?? 0}</p>
-        </article>
-        <article className="oa-kpi-card">
-          <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Pending</p>
-          <p className="mt-2 text-2xl font-semibold text-amber-100">{data?.pendingCount ?? 0}</p>
-        </article>
-        <article className="oa-kpi-card">
-          <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Resolved</p>
-          <p className="mt-2 text-2xl font-semibold text-oa-text">{data?.resolvedCount ?? 0}</p>
-        </article>
-      </section>
 
       <section className="oa-panel">
         <div className="flex items-center justify-between gap-2">
@@ -146,35 +158,41 @@ export function ChallengesPage() {
             </p>
           ) : (
             pending.map((challenge) => (
-              <article key={challenge.id} className="oa-action-card">
+              <article key={challenge.id} className="oa-challenge-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-oa-text">{challenge.challengeTypeDisplayName}</h3>
-                    <p className="mt-1 text-sm text-oa-muted">{challenge.challengeTypeDescription}</p>
+                    <p className="mt-1 text-xs text-oa-muted">{challenge.challengeTypeDescription}</p>
                   </div>
-                  <span className={`oa-chip ${statusBadgeClass(challenge.status)}`}>
-                    {challenge.status}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={roleBadgeClass(challenge.myRole)}>{roleLabel(challenge.myRole)}</span>
+                    <span className={`oa-chip ${statusBadgeClass(challenge.status)}`}>{challenge.status}</span>
+                  </div>
                 </div>
 
-                <div className="mt-3 grid gap-2 text-sm text-oa-muted sm:grid-cols-2">
+                <div className="oa-pvp-strip mt-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-oa-muted">Obligated</p>
+                    <p className="text-sm font-semibold text-oa-text">{challenge.obligatedDisplayName}</p>
+                  </div>
+                  <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.18em] text-oa-muted">vs</div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-oa-muted">Beneficiary</p>
+                    <p className="text-sm font-semibold text-oa-text">{challenge.beneficiaryDisplayName}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 text-xs text-oa-muted sm:grid-cols-3">
                   <p>
-                    <span className="text-oa-text">Obligated:</span> {challenge.obligatedDisplayName}
+                    Created <span className="text-oa-text">{formatDateTime(challenge.createdAt)}</span>
                   </p>
                   <p>
-                    <span className="text-oa-text">Beneficiary:</span> {challenge.beneficiaryDisplayName}
+                    Respect <span className="text-oa-text">{challenge.respectPointsAwarded}</span>
                   </p>
                   <p>
-                    <span className="text-oa-text">Created:</span> {formatDateTime(challenge.createdAt)}
+                    Karma <span className="text-oa-text">{challenge.karmaPointsAwarded}</span>
                   </p>
-                  <p>
-                    <span className="text-oa-text">My Role:</span> {challenge.myRole}
-                  </p>
-                  {challenge.disputedAt ? (
-                    <p>
-                      <span className="text-oa-text">Disputed At:</span> {formatDateTime(challenge.disputedAt)}
-                    </p>
-                  ) : null}
+                  {challenge.disputedAt ? <p>Disputed {formatDateTime(challenge.disputedAt)}</p> : null}
                 </div>
 
                 {challenge.disputeNote ? (
@@ -300,20 +318,29 @@ export function ChallengesPage() {
             </p>
           ) : (
             history.map((challenge) => (
-              <article key={challenge.id} className="oa-action-card">
+              <article key={challenge.id} className="oa-room-card">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium text-oa-text">{challenge.challengeTypeDisplayName}</p>
                   <span className={`oa-chip ${statusBadgeClass(challenge.status)}`}>
                     {challenge.status}
                   </span>
                 </div>
-                <div className="mt-2 grid gap-2 text-xs text-oa-muted sm:grid-cols-3">
-                  <p>Obligated: {challenge.obligatedDisplayName}</p>
-                  <p>Beneficiary: {challenge.beneficiaryDisplayName}</p>
-                  <p>Resolved: {formatDateTime(challenge.resolvedAt)}</p>
+                <div className="oa-pvp-strip mt-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-oa-muted">Obligated</p>
+                    <p className="text-xs text-oa-text">{challenge.obligatedDisplayName}</p>
+                  </div>
+                  <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.16em] text-oa-muted">vs</div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-oa-muted">Beneficiary</p>
+                    <p className="text-xs text-oa-text">{challenge.beneficiaryDisplayName}</p>
+                  </div>
+                </div>
+                <div className="mt-2 grid gap-2 text-xs text-oa-muted sm:grid-cols-4">
+                  <p>Resolved {formatDateTime(challenge.resolvedAt)}</p>
                   <p>Respect Applied: {challenge.respectPointsAwarded}</p>
                   <p>Karma Applied: {challenge.karmaPointsAwarded}</p>
-                  <p>My Role: {challenge.myRole}</p>
+                  <p>Role: {roleLabel(challenge.myRole)}</p>
                 </div>
                 <div className="mt-2">
                   <button

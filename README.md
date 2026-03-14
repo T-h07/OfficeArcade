@@ -36,6 +36,13 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - Introduced shared shell primitives (`PageHero`, route metadata helpers, shell-specific utility classes) and applied them across representative routes.
 - Functionality, route guards, and module logic remain unchanged; later OA-UX PTs can deepen per-page module internals and interaction polish.
 
+## OA-UX-PT03 Gameplay and Arcade Surface Refresh
+
+- Refreshed player-critical surfaces across Play/Lobby, Challenges, and Leaderboards with stronger arcade-social hierarchy.
+- Added reusable game-type visual primitives (`GameTypeBadge`, `gameTypeVisuals`) and shared gameplay card patterns for live/joinable/staged room states.
+- Upgraded game-adjacent panels (Connect Four, Trivia, UNO) with clearer match-state presentation and game-specific identity accents.
+- Functionality and gameplay rules remain unchanged; later OA-UX PTs can continue deeper module polish (store/profile/avatar and motion detail).
+
 ## OA-PT19 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior

@@ -1,4 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { GameTypeBadge } from "./GameTypeBadge";
+import { getGameTypeVisual } from "./gameTypeVisuals";
 import type { CreateLobbyRoomRequest, LobbyGameType } from "../types/lobby.types";
 
 type CreateRoomFormProps = {
@@ -25,6 +27,8 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
   const normalizedGameTypeCode = gameTypeCode.toUpperCase();
   const isTwoPlayerLockedGame = normalizedGameTypeCode === "CONNECT_FOUR" || normalizedGameTypeCode === "TRIVIA";
   const isUnoGame = normalizedGameTypeCode === "UNO";
+  const selectedGameType = gameTypes.find((gameType) => gameType.code === gameTypeCode);
+  const selectedVisual = getGameTypeVisual(gameTypeCode, selectedGameType?.displayName);
 
   useEffect(() => {
     if (!defaultGameType) {
@@ -94,9 +98,15 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
   }
 
   return (
-    <section className="oa-panel">
-      <h2 className="text-lg font-semibold text-oa-text">Host a Room</h2>
-      <p className="mt-1 text-sm text-oa-muted">Spin up a match room for a quick session.</p>
+    <section className={selectedVisual.surfaceClassName}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.14em] text-oa-muted">Room Launch Panel</p>
+          <h2 className="mt-1 text-xl font-semibold text-oa-text">Host a Room</h2>
+          <p className="mt-1 text-sm text-oa-muted">Stage a session and invite players into a live match.</p>
+        </div>
+        {gameTypeCode ? <GameTypeBadge gameTypeCode={gameTypeCode} displayName={selectedGameType?.displayName} /> : null}
+      </div>
 
       <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
         <div>
@@ -208,6 +218,9 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
                 Private
               </button>
             </div>
+            <p className="mt-2 text-xs text-oa-muted">
+              {isPrivate ? "Password-protected invite room" : "Open to all eligible players"}
+            </p>
           </div>
         </div>
 
@@ -242,7 +255,7 @@ export function CreateRoomForm({ gameTypes, disabled, onSubmit }: CreateRoomForm
           className="oa-btn oa-btn-primary w-full px-3 py-2"
           disabled={disabled || gameTypes.length === 0}
         >
-          Create Room
+          Launch {selectedVisual.shortLabel} Room
         </button>
       </form>
     </section>

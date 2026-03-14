@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { GameTypeBadge } from "../../lobby/components/GameTypeBadge";
+import { getGameTypeVisual } from "../../lobby/components/gameTypeVisuals";
 import type { LobbyRoomDetail } from "../../lobby/types/lobby.types";
 import { useUnoGame } from "../hooks/useUnoGame";
 import type { UnoCard, UnoGameState, UnoPlayer } from "../types/uno.types";
@@ -63,6 +65,7 @@ function actionText(card: UnoCard) {
 
 export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized }: UnoGamePanelProps) {
   const isUnoRoom = room?.gameTypeCode === UNO_CODE;
+  const visual = getGameTypeVisual(UNO_CODE, "UNO-Style");
 
   const {
     gameState,
@@ -97,10 +100,13 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
 
   if (isLoading || !gameState) {
     return (
-      <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+      <section className={visual.surfaceClassName}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-oa-text">UNO-Style Match</h2>
-          <span className="rounded-full border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted">
+          <div className="flex items-center gap-2">
+            <GameTypeBadge gameTypeCode={UNO_CODE} displayName="UNO-Style" />
+            <h2 className="text-lg font-semibold text-oa-text">Card Sync</h2>
+          </div>
+          <span className={realtimeStatus === "connected" ? "oa-live-chip" : "oa-chip"}>
             Realtime: {realtimeStatus}
           </span>
         </div>
@@ -111,10 +117,10 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
 
   const statusChipClass =
     gameState.status === "ACTIVE"
-      ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+      ? "oa-chip oa-chip-success"
       : gameState.status === "FINISHED"
-        ? "border-amber-300/45 bg-amber-300/15 text-amber-100"
-        : "border-oa-border bg-black/25 text-oa-muted";
+        ? "oa-chip oa-chip-warning"
+        : "oa-chip";
 
   const playableTokens = new Set(gameState.playableCardTokens);
   const winner = findPlayer(gameState, gameState.winnerUserId);
@@ -122,36 +128,39 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
   const isFinished = gameState.status === "FINISHED";
 
   return (
-    <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+    <section className={visual.surfaceClassName}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-oa-text">UNO-Style Match</h2>
+          <div className="flex items-center gap-2">
+            <GameTypeBadge gameTypeCode={UNO_CODE} displayName="UNO-Style" />
+            <h2 className="text-lg font-semibold text-oa-text">Card Table</h2>
+          </div>
           <p className="mt-1 text-sm text-oa-muted">
-            Server-authoritative card state for room: <span className="text-oa-text">{room.roomName}</span>
+            Card-driven turn play in <span className="text-oa-text">{room.roomName}</span>.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-xs ${statusChipClass}`}>Status: {statusLabel}</span>
-          <span className="rounded-full border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted">
+          <span className={statusChipClass}>Status: {statusLabel}</span>
+          <span className={realtimeStatus === "connected" ? "oa-live-chip" : "oa-chip"}>
             Realtime: {realtimeStatus}
           </span>
         </div>
       </div>
 
       {errorMessage ? (
-        <div className="mt-4 rounded-xl border border-oa-danger/45 bg-oa-danger/10 px-4 py-3 text-sm text-oa-danger">
+        <div className="oa-alert oa-alert-danger mt-4">
           {errorMessage}
         </div>
       ) : null}
 
       {actionMessage ? (
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-oa-accent/45 bg-oa-accent/10 px-4 py-3">
+        <div className="oa-alert oa-alert-success mt-4 flex items-center justify-between gap-3">
           <p className="text-sm text-oa-text">{actionMessage}</p>
           <button
             type="button"
             onClick={clearActionMessage}
-            className="rounded-md border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted transition-colors hover:border-oa-accent/45 hover:text-oa-text"
+            className="oa-btn oa-btn-ghost px-2.5 py-1 text-xs"
           >
             Dismiss
           </button>
@@ -159,19 +168,19 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
       ) : null}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-3 rounded-xl border border-oa-border bg-black/20 p-4">
+        <div className="oa-panel-soft space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Table State</p>
-            <span className="rounded-full border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted">
+            <span className="oa-chip">
               Direction: {gameState.direction === "CLOCKWISE" ? "Clockwise" : "Counterclockwise"}
             </span>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-oa-border bg-black/25 p-3">
+            <div className="oa-panel-soft p-3">
               <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Top Discard</p>
               {gameState.topDiscardCard ? (
-                <div className="mt-2 rounded-md border border-oa-border bg-black/25 p-3">
+                <div className="oa-room-card mt-2 p-3">
                   <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${colorBadgeClass(gameState.topDiscardCard.color)}`}>
                     {gameState.topDiscardCard.color}
                   </span>
@@ -182,7 +191,7 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
               )}
             </div>
 
-            <div className="space-y-3 rounded-lg border border-oa-border bg-black/25 p-3">
+            <div className="oa-panel-soft space-y-3 p-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Current Color</p>
                 <span className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs ${colorBadgeClass(gameState.currentColor)}`}>
@@ -202,7 +211,7 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
                 onClick={() => {
                   void drawCard();
                 }}
-                className="w-full rounded-md border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-55"
+                className="oa-btn oa-btn-secondary w-full px-3 py-2"
                 disabled={!gameState.canDraw || isMutating || isFinished}
               >
                 Draw One Card
@@ -210,7 +219,7 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
             </div>
           </div>
 
-          <div className="rounded-lg border border-oa-border bg-black/25 p-3">
+          <div className="oa-panel-soft p-3">
             <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">My Hand ({gameState.myHand.length})</p>
             {gameState.myHand.length === 0 ? (
               <p className="mt-2 text-sm text-oa-muted">{isFinished ? "You have no cards left." : "No cards dealt yet."}</p>
@@ -238,16 +247,16 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
           </div>
         </div>
 
-        <aside className="space-y-3 rounded-xl border border-oa-border bg-black/20 p-4">
+        <aside className="oa-panel-soft space-y-3">
           <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Players</p>
           <div className="space-y-2">
             {gameState.players.map((player) => (
               <div
                 key={player.userId}
-                className={`rounded-md border px-3 py-2 ${
+                className={`oa-room-card px-3 py-2 ${
                   player.currentTurn
                     ? "border-oa-accent/45 bg-oa-accent/10"
-                    : "border-oa-border bg-black/25"
+                    : ""
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -264,7 +273,7 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
             ))}
           </div>
 
-          <div className="rounded-md border border-oa-border bg-black/25 px-3 py-2 text-sm text-oa-muted">
+          <div className="oa-room-card px-3 py-2 text-sm text-oa-muted">
             {gameState.status === "WAITING" ? (
               <p>Waiting for host start. UNO supports 2 to 4 players.</p>
             ) : null}
@@ -287,7 +296,7 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
               onClick={() => {
                 void startGame();
               }}
-              className="rounded-md border border-oa-accent/50 bg-oa-accent/20 px-3 py-2 text-sm font-semibold text-oa-text transition-colors hover:bg-oa-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="oa-btn oa-btn-primary px-3 py-2"
               disabled={!gameState.canStart || isMutating}
             >
               {gameState.status === "FINISHED" ? "Start New UNO Match" : "Start UNO Match"}
@@ -297,7 +306,7 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
               onClick={() => {
                 void refresh();
               }}
-              className="rounded-md border border-oa-border bg-black/25 px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-60"
+              className="oa-btn oa-btn-secondary px-3 py-2"
               disabled={isMutating || isLoading}
             >
               Refresh Game
@@ -305,8 +314,7 @@ export function UnoGamePanel({ accessToken, room, currentUserId, onUnauthorized 
           </div>
 
           <p className="text-xs text-oa-muted">
-            Rule scope: numbers, Skip, Reverse, and Draw Two. Draw is allowed only when you have no valid play, and
-            drawing one ends your turn.
+            Rule scope: numbers, Skip, Reverse, and Draw Two.
           </p>
           <p className="text-xs text-oa-muted">Moves played: {gameState.moveCount}</p>
         </aside>

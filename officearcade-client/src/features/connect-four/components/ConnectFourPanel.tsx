@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { GameTypeBadge } from "../../lobby/components/GameTypeBadge";
+import { getGameTypeVisual } from "../../lobby/components/gameTypeVisuals";
 import { useConnectFourGame } from "../hooks/useConnectFourGame";
 import type { ConnectFourGameState } from "../types/connectFour.types";
 import type { LobbyRoomDetail } from "../../lobby/types/lobby.types";
@@ -31,6 +33,7 @@ function findPlayerName(state: ConnectFourGameState, userId: string | null) {
 
 export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthorized }: ConnectFourPanelProps) {
   const isConnectFourRoom = room?.gameTypeCode === CONNECT_FOUR_CODE;
+  const visual = getGameTypeVisual(CONNECT_FOUR_CODE, "Connect Four");
 
   const {
     gameState,
@@ -64,10 +67,13 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
 
   if (isLoading || !gameState) {
     return (
-      <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+      <section className={visual.surfaceClassName}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-oa-text">Connect Four</h2>
-          <span className="rounded-full border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted">
+          <div className="flex items-center gap-2">
+            <GameTypeBadge gameTypeCode={CONNECT_FOUR_CODE} displayName="Connect Four" />
+            <h2 className="text-lg font-semibold text-oa-text">Board Sync</h2>
+          </div>
+          <span className={realtimeStatus === "connected" ? "oa-live-chip" : "oa-chip"}>
             Realtime: {realtimeStatus}
           </span>
         </div>
@@ -86,42 +92,45 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
 
   const statusChipClass =
     gameState.status === "ACTIVE"
-      ? "border-oa-accent/45 bg-oa-accent/15 text-oa-text"
+      ? "oa-chip oa-chip-success"
       : gameState.status === "FINISHED"
-        ? "border-amber-300/45 bg-amber-300/15 text-amber-100"
-        : "border-oa-border bg-black/25 text-oa-muted";
+        ? "oa-chip oa-chip-warning"
+        : "oa-chip";
 
   return (
-    <section className="rounded-2xl border border-oa-border bg-oa-surface/80 p-5">
+    <section className={visual.surfaceClassName}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-oa-text">Connect Four</h2>
+          <div className="flex items-center gap-2">
+            <GameTypeBadge gameTypeCode={CONNECT_FOUR_CODE} displayName="Connect Four" />
+            <h2 className="text-lg font-semibold text-oa-text">Match Table</h2>
+          </div>
           <p className="mt-1 text-sm text-oa-muted">
-            Server-authoritative board state for room: <span className="text-oa-text">{room.roomName}</span>
+            Tactical board play in <span className="text-oa-text">{room.roomName}</span>.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-xs ${statusChipClass}`}>Status: {statusLabel}</span>
-          <span className="rounded-full border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted">
+          <span className={statusChipClass}>Status: {statusLabel}</span>
+          <span className={realtimeStatus === "connected" ? "oa-live-chip" : "oa-chip"}>
             Realtime: {realtimeStatus}
           </span>
         </div>
       </div>
 
       {errorMessage ? (
-        <div className="mt-4 rounded-xl border border-oa-danger/45 bg-oa-danger/10 px-4 py-3 text-sm text-oa-danger">
+        <div className="oa-alert oa-alert-danger mt-4">
           {errorMessage}
         </div>
       ) : null}
 
       {actionMessage ? (
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-oa-accent/45 bg-oa-accent/10 px-4 py-3">
+        <div className="oa-alert oa-alert-success mt-4 flex items-center justify-between gap-3">
           <p className="text-sm text-oa-text">{actionMessage}</p>
           <button
             type="button"
             onClick={clearActionMessage}
-            className="rounded-md border border-oa-border bg-black/25 px-2.5 py-1 text-xs text-oa-muted transition-colors hover:border-oa-accent/45 hover:text-oa-text"
+            className="oa-btn oa-btn-ghost px-2.5 py-1 text-xs"
           >
             Dismiss
           </button>
@@ -129,7 +138,7 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
       ) : null}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_280px]">
-        <div className="rounded-xl border border-oa-border bg-black/20 p-3">
+        <div className="oa-panel-soft p-3">
           <div className="grid grid-cols-7 gap-1.5 pb-2">
             {Array.from({ length: gameState.columns }, (_, column) => {
               const canDrop =
@@ -144,7 +153,7 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
                   onClick={() => {
                     void makeMove(column);
                   }}
-                  className="rounded-md border border-oa-border bg-black/25 px-1 py-1 text-[11px] text-oa-muted transition-colors hover:border-oa-accent/45 hover:text-oa-text disabled:cursor-not-allowed disabled:opacity-50"
+                  className="oa-btn oa-btn-ghost px-1 py-1 text-[11px]"
                   disabled={!canDrop}
                 >
                   Drop
@@ -165,22 +174,22 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
           </div>
         </div>
 
-        <aside className="space-y-3 rounded-xl border border-oa-border bg-black/20 p-4">
+        <aside className="oa-panel-soft space-y-3">
           <div>
             <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Players</p>
             <div className="mt-2 space-y-2 text-sm">
-              <p className="rounded-md border border-oa-border bg-black/30 px-3 py-2 text-oa-text">
+              <p className="oa-room-card px-3 py-2 text-oa-text">
                 <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-amber-300" />
                 {playerOneName}
               </p>
-              <p className="rounded-md border border-oa-border bg-black/30 px-3 py-2 text-oa-text">
+              <p className="oa-room-card px-3 py-2 text-oa-text">
                 <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-sky-400" />
                 {playerTwoName}
               </p>
             </div>
           </div>
 
-          <div className="rounded-md border border-oa-border bg-black/30 px-3 py-2 text-sm text-oa-muted">
+          <div className="oa-room-card px-3 py-2 text-sm text-oa-muted">
             {gameState.status === "WAITING" ? (
               <p>Waiting for host to start. Exactly 2 players are required.</p>
             ) : null}
@@ -206,7 +215,7 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
               onClick={() => {
                 void startGame();
               }}
-              className="rounded-md border border-oa-accent/50 bg-oa-accent/20 px-3 py-2 text-sm font-semibold text-oa-text transition-colors hover:bg-oa-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="oa-btn oa-btn-primary px-3 py-2"
               disabled={!gameState.canStart || isMutating}
             >
               {gameState.status === "FINISHED" ? "Start New Match" : "Start Match"}
@@ -217,7 +226,7 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
               onClick={() => {
                 void refresh();
               }}
-              className="rounded-md border border-oa-border bg-black/25 px-3 py-2 text-sm text-oa-text transition-colors hover:border-oa-accent/45 disabled:cursor-not-allowed disabled:opacity-60"
+              className="oa-btn oa-btn-secondary px-3 py-2"
               disabled={isMutating || isLoading}
             >
               Refresh Game
@@ -225,8 +234,7 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
           </div>
 
           <p className="text-xs text-oa-muted">
-            Move validation, turn order, and match outcome are enforced by the backend. Your client only submits
-            actions and renders authoritative state.
+            Turn order and move validation are backend authoritative.
           </p>
         </aside>
       </div>
@@ -237,7 +245,7 @@ export function ConnectFourPanel({ accessToken, room, currentUserId, onUnauthori
       </div>
 
       {gameState.status === "FINISHED" && !gameState.draw && challenge ? (
-        <div className="mt-4 rounded-xl border border-oa-border bg-black/20 p-4">
+        <div className="oa-panel-soft mt-4">
           <p className="text-xs uppercase tracking-[0.12em] text-oa-muted">Post-match challenge</p>
           <h3 className="mt-1 text-base font-semibold text-oa-text">{challenge.challengeTypeDisplayName}</h3>
           <p className="mt-1 text-sm text-oa-muted">

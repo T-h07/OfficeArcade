@@ -28,6 +28,19 @@ function rankBadgeClass(rank: number) {
   return "";
 }
 
+function podiumCardClass(rank: number) {
+  if (rank === 1) {
+    return "oa-podium-first";
+  }
+  if (rank === 2) {
+    return "oa-podium-second";
+  }
+  if (rank === 3) {
+    return "oa-podium-third";
+  }
+  return "";
+}
+
 function rowClass(entry: LeaderboardEntry) {
   if (entry.currentUser) {
     return "border-[rgba(var(--oa-route-rgb),0.46)] bg-[rgba(var(--oa-route-rgb),0.14)]";
@@ -129,11 +142,16 @@ export function LeaderboardsPage() {
       <PageHero
         kicker="Competitive Standings"
         title="Leaderboards"
-        subtitle="Compare performance and reputation metrics across company or department scope."
+        subtitle="Track rank, compare metrics, and push your position upward."
         rightSlot={
           leaderboard ? <span className="oa-chip">Refreshed {formatDateTime(leaderboard.generatedAt)}</span> : null
         }
-        footerSlot={<span className="oa-chip">Scope: {selectedDepartmentLabel}</span>}
+        footerSlot={
+          <>
+            <span className="oa-chip">Scope: {selectedDepartmentLabel}</span>
+            <span className="oa-chip oa-chip-route">Metric: {selectedOption?.title ?? selectedType}</span>
+          </>
+        }
       />
 
       {errorMessage ? (
@@ -155,10 +173,10 @@ export function LeaderboardsPage() {
               key={option.type}
               type="button"
               onClick={() => setSelectedType(option.type)}
-              className={`oa-chip ${
+              className={`oa-btn px-3 py-1.5 text-xs ${
                 selectedType === option.type
-                  ? "oa-chip-route"
-                  : ""
+                  ? "oa-btn-primary"
+                  : "oa-btn-ghost"
               }`}
               disabled={isLoading}
             >
@@ -219,14 +237,14 @@ export function LeaderboardsPage() {
             {topThree.map((entry) => (
               <article
                 key={entry.userId}
-                className={`oa-action-card ${
+                className={`oa-podium-card ${podiumCardClass(entry.rank)} ${
                   entry.currentUser
                     ? "border-[rgba(var(--oa-route-rgb),0.5)] bg-[rgba(var(--oa-route-rgb),0.14)]"
                     : ""
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`oa-chip ${rankBadgeClass(entry.rank)}`}>
+                  <span className={`oa-podium-rank ${rankBadgeClass(entry.rank)}`}>
                     #{entry.rank}
                   </span>
                   <span className="text-xs text-oa-muted">{entry.role}</span>
@@ -273,9 +291,9 @@ export function LeaderboardsPage() {
                 leaderboard.entries.map((entry) => (
                   <article
                     key={entry.userId}
-                    className={`grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border px-3 py-2 ${rowClass(entry)}`}
+                    className={`oa-room-card grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2 ${rowClass(entry)}`}
                   >
-                    <span className={`oa-chip ${rankBadgeClass(entry.rank)}`}>
+                    <span className={`oa-podium-rank ${rankBadgeClass(entry.rank)}`}>
                       #{entry.rank}
                     </span>
 
@@ -305,7 +323,7 @@ export function LeaderboardsPage() {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-oa-text">{formatMetric(entry)}</p>
+                      <p className="text-base font-semibold text-oa-text">{formatMetric(entry)}</p>
                       <p className="text-xs text-oa-muted">{leaderboard.metricLabel}</p>
                     </div>
                   </article>
@@ -317,7 +335,7 @@ export function LeaderboardsPage() {
           <section className="oa-panel">
             <h2 className="text-lg font-semibold text-oa-text">Your Rank</h2>
             {leaderboard.currentUserEligible && leaderboard.currentUserEntry ? (
-              <div className="oa-alert oa-alert-success mt-3">
+              <div className="oa-game-surface oa-game-connect-four-surface mt-3">
                 <p className="text-sm font-medium text-oa-text">
                   #{leaderboard.currentUserEntry.rank} in {leaderboard.title} ({selectedDepartmentLabel})
                 </p>

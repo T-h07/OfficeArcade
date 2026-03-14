@@ -91,7 +91,7 @@ export function LobbyPage() {
 
   const realtimeBadgeClass =
     realtimeStatus === "connected"
-      ? "oa-chip-success"
+      ? "oa-live-chip"
       : realtimeStatus === "connecting"
         ? "oa-chip-warning"
         : "";
@@ -136,9 +136,9 @@ export function LobbyPage() {
       <PageHero
         kicker="Multiplayer Arena"
         title="Play Lobby"
-        subtitle="Create or join a room and launch short synchronized matches."
+        subtitle="Browse live sessions, stage your room, and launch short competitive matches."
         rightSlot={
-          <span className={`oa-chip ${realtimeBadgeClass}`}>
+          <span className={`${realtimeBadgeClass || "oa-chip"}`}>
             Realtime: {realtimeStatus === "connected" ? "Live" : realtimeStatus}
           </span>
         }
@@ -231,7 +231,7 @@ export function LobbyPage() {
       <TriviaBattlePanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
       <UnoGamePanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
 
-      <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
+      <div className="oa-page-grid oa-page-grid-two">
         <CreateRoomForm
           gameTypes={gameTypes}
           disabled={isMutating || isLoading || playBlocked}
