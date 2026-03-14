@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ConnectFourPanel } from "../../connect-four/components/ConnectFourPanel";
+import { TriviaBattlePanel } from "../../trivia/components/TriviaBattlePanel";
 import { useAuth } from "../../auth/AuthContext";
 import { CreateRoomForm } from "../components/CreateRoomForm";
 import { CurrentRoomPanel } from "../components/CurrentRoomPanel";
@@ -99,6 +100,7 @@ export function LobbyPage() {
       />
 
       <ConnectFourPanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
+      <TriviaBattlePanel accessToken={accessToken} room={myRoom} currentUserId={user.id} onUnauthorized={logout} />
 
       <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
         <CreateRoomForm gameTypes={gameTypes} disabled={isMutating || isLoading} onSubmit={createRoom} />

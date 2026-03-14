@@ -130,7 +130,7 @@ class LobbyControllerTest {
                 baseUrl("/api/lobby/rooms"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        new CreateLobbyRoomRequest("Private Trivia", "TRIVIA", 3, 2, true, "Room@123"),
+                        new CreateLobbyRoomRequest("Private Trivia", "TRIVIA", 2, 2, true, "Room@123"),
                         authHeaders(employeeToken)
                 ),
                 LobbyRoomDetailResponse.class

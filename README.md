@@ -19,7 +19,7 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `officearcade-shared/` - shared contracts/types/docs placeholders
 - `assets/` - branding/cosmetics/avatars/mockups placeholders
 
-## OA-PT12 Implemented Scope
+## OA-PT13 Implemented Scope
 
 - Preserved OA-PT02 auth/session flow and OA-PT03 admin user management behavior
 - Preserved OA-PT04 persisted foundation (`users`, `player_profiles`, `game_types`) and OA-PT05 employee dashboard
@@ -81,6 +81,24 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
   - current-user rank context returned even when outside visible top list
   - compact profile-aware presentation support (profile frame/badge markers in ranking entries)
   - dedicated Leaderboards page with metric tabs, ranked rows, top-3 emphasis, and "Your Rank" summary
+- Added second playable game integration: **Trivia Battle**
+  - server-authoritative trivia state, question flow, round progression, and scoring
+  - persisted trivia question bank (`trivia_questions`) seeded by Flyway
+  - room-linked trivia session lifecycle (`WAITING`, `ACTIVE`, `FINISHED`)
+  - host start rule for TRIVIA rooms with exactly 2 room members
+  - answer submission endpoint with strict validation:
+    - participant-only access
+    - one answer per player per round
+    - no invalid option indices
+    - no submissions after round/match completion
+  - live round and score synchronization via STOMP topic:
+    - `/topic/games/trivia/{roomId}`
+  - post-round result snapshots (correct answer + per-player correctness)
+  - final winner/draw resolution and clean post-game state handling
+  - TRIVIA room safety aligned with gameplay constraints:
+    - TRIVIA rooms require `maxPlayers = 2`
+    - joining is blocked while an active Trivia Battle is in progress
+    - if a player leaves during an active Trivia match, room closes cleanly
 
 ## Auth + Admin Scope (Current)
 
@@ -171,6 +189,56 @@ OfficeArcade is a workplace-friendly desktop gaming platform for short break-tim
 - `started_at`
 - `ended_at`
 - `updated_at`
+
+### `trivia_questions`
+
+- `id` (UUID, PK)
+- `code` (unique)
+- `prompt`
+- `option_a`
+- `option_b`
+- `option_c`
+- `option_d`
+- `correct_option_index` (0-3)
+- `category`
+- `difficulty` (`EASY`, `MEDIUM`, `HARD`)
+- `enabled`
+- `created_at`
+- `updated_at`
+
+### `trivia_games`
+
+- `id` (UUID, PK)
+- `room_id` (UUID, unique FK to `rooms`)
+- `status` (`WAITING`, `ACTIVE`, `FINISHED`)
+- `player_one_user_id` (FK to `users`)
+- `player_two_user_id` (FK to `users`)
+- `current_round`
+- `total_rounds`
+- `question_sequence` (ordered list of selected question IDs for deterministic round flow)
+- `current_question_id` (FK to `trivia_questions`)
+- `last_resolved_round`
+- `last_question_id` (FK to `trivia_questions`)
+- `player_one_score`
+- `player_two_score`
+- `winner_user_id` (FK to `users`, nullable)
+- `is_draw`
+- `created_at`
+- `started_at`
+- `ended_at`
+- `updated_at`
+
+### `trivia_round_answers`
+
+- `id` (UUID, PK)
+- `game_id` (FK to `trivia_games`)
+- `round_number`
+- `question_id` (FK to `trivia_questions`)
+- `user_id` (FK to `users`)
+- `selected_option_index`
+- `is_correct`
+- `submitted_at`
+- uniqueness rule enforces one answer per player per round: `(game_id, round_number, user_id)`
 
 ### `challenge_types`
 
@@ -268,7 +336,7 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Karma leaderboard is intentionally ordered ascending (lower karma ranks higher).
 - API exposes current-user ranking context even if the user is outside the visible top list.
 
-## Realtime + Game + Reputation + Store + Profile + Leaderboard Notes (OA-PT12)
+## Realtime + Game + Reputation + Store + Profile + Leaderboard Notes (OA-PT13)
 
 - Room and membership state is persisted in PostgreSQL.
 - Default room list excludes `CLOSED` rooms.
@@ -279,6 +347,10 @@ Passwords are stored hashed in PostgreSQL. Seed data is migration-driven through
 - Connect Four rooms can transition into active gameplay once host starts with 2 players present.
 - Connect Four board state is synchronized live across clients via room-specific game topic events.
 - Gameplay correctness is server-authoritative; frontend never decides official outcomes.
+- Trivia rooms can transition into active gameplay once host starts with 2 players present.
+- Trivia question flow, answer state, and score updates are synchronized live across clients via:
+  - `/topic/games/trivia/{roomId}`
+- Trivia correctness is server-authoritative; frontend never decides official scoring/outcomes.
 - Completed non-draw Connect Four matches create one safe post-match challenge record.
 - Challenges are resolved manually through confirm/reject actions by the beneficiary only.
 - Respect/Karma updates are persisted on player profiles and reflected in dashboard + challenge history views.
@@ -380,7 +452,7 @@ $env:VITE_REALTIME_WS_URL="ws://localhost:18180/ws"
 ## Intentionally Not Implemented Yet
 
 - Room chat and live presence orchestration
-- Additional game integrations (UNO/TRIVIA remain placeholders)
+- Additional game integrations beyond Connect Four and Trivia (UNO remains placeholder)
 - Department/tag modules
 - Advanced avatar rendering/customization scene tooling
 - Public social profile directory/sharing flows
@@ -396,4 +468,4 @@ Each OA-PT is developed on its own task branch and merged manually into `dev`, t
 
 ## Next Step
 
-`OA-PT13+` can expand game-specific seasonal competition, richer social profile visibility, and additional ranking dimensions on top of the OA-PT12 leaderboard foundation.
+`OA-PT14+` can expand game variety, broader post-match systems, richer social profile visibility, and seasonal competition foundations on top of the OA-PT13 gameplay baseline.
