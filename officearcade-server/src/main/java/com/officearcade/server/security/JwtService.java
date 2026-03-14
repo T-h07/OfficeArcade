@@ -1,7 +1,7 @@
 package com.officearcade.server.security;
 
 import com.officearcade.server.identity.AppRole;
-import com.officearcade.server.identity.IdentityUser;
+import com.officearcade.server.users.UserAccount;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
@@ -26,7 +26,7 @@ public class JwtService {
         this.signingKey = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(IdentityUser user) {
+    public String generateAccessToken(UserAccount user) {
         Instant now = Instant.now();
         Instant expiration = now.plus(jwtProperties.accessTokenTtlMinutes(), ChronoUnit.MINUTES);
 

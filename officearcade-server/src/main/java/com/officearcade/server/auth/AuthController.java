@@ -5,9 +5,9 @@ import com.officearcade.server.auth.dto.CurrentUserResponse;
 import com.officearcade.server.auth.dto.LoginRequest;
 import com.officearcade.server.auth.dto.LoginResponse;
 import com.officearcade.server.auth.dto.RoleCheckResponse;
-import com.officearcade.server.identity.DevIdentityService;
-import com.officearcade.server.identity.IdentityUser;
 import com.officearcade.server.security.OfficeArcadePrincipal;
+import com.officearcade.server.users.UserAccount;
+import com.officearcade.server.users.UserAccountService;
 import jakarta.validation.Valid;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
@@ -26,11 +26,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthController {
 
     private final AuthService authService;
-    private final DevIdentityService devIdentityService;
+    private final UserAccountService userAccountService;
 
-    public AuthController(AuthService authService, DevIdentityService devIdentityService) {
+    public AuthController(AuthService authService, UserAccountService userAccountService) {
         this.authService = authService;
-        this.devIdentityService = devIdentityService;
+        this.userAccountService = userAccountService;
     }
 
     @PostMapping("/login")
@@ -45,7 +45,7 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing authentication context.");
         }
 
-        Optional<IdentityUser> maybeUser = devIdentityService.findById(principal.id());
+        Optional<UserAccount> maybeUser = userAccountService.findById(principal.id());
         if (maybeUser.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user no longer available.");
         }

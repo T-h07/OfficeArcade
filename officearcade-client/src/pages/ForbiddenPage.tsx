@@ -5,7 +5,7 @@ export function ForbiddenPage() {
     <section className="rounded-2xl border border-oa-border bg-oa-surface/85 p-6">
       <h1 className="text-2xl font-semibold text-oa-text">Access Restricted</h1>
       <p className="mt-2 text-sm text-oa-muted">
-        Your current role does not have access to this route in OA-PT02.
+        Your current role does not have access to this route in OA-PT03.
       </p>
 
       <Link

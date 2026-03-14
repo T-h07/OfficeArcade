@@ -3,44 +3,40 @@ package com.officearcade.server.auth;
 import com.officearcade.server.auth.dto.AuthenticatedUserResponse;
 import com.officearcade.server.auth.dto.LoginRequest;
 import com.officearcade.server.auth.dto.LoginResponse;
-import com.officearcade.server.identity.DevIdentityService;
-import com.officearcade.server.identity.IdentityUser;
 import com.officearcade.server.security.JwtService;
+import com.officearcade.server.users.UserAccount;
+import com.officearcade.server.users.UserAccountService;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthService {
 
-    private final DevIdentityService devIdentityService;
+    private final UserAccountService userAccountService;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
 
     public AuthService(
-            DevIdentityService devIdentityService,
-            JwtService jwtService,
-            PasswordEncoder passwordEncoder
+            UserAccountService userAccountService,
+            JwtService jwtService
     ) {
-        this.devIdentityService = devIdentityService;
+        this.userAccountService = userAccountService;
         this.jwtService = jwtService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     public LoginResponse login(LoginRequest request) {
-        Optional<IdentityUser> maybeUser = devIdentityService.findByEmail(request.email());
+        Optional<UserAccount> maybeUser = userAccountService.findByEmail(request.email());
         if (maybeUser.isEmpty()) {
             throw invalidCredentials();
         }
 
-        IdentityUser user = maybeUser.get();
+        UserAccount user = maybeUser.get();
         if (!user.enabled()) {
             throw invalidCredentials();
         }
 
-        if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
+        if (!userAccountService.passwordMatches(user, request.password())) {
             throw invalidCredentials();
         }
 
@@ -53,7 +49,7 @@ public class AuthService {
         );
     }
 
-    public AuthenticatedUserResponse toUserResponse(IdentityUser user) {
+    public AuthenticatedUserResponse toUserResponse(UserAccount user) {
         return new AuthenticatedUserResponse(
                 user.id(),
                 user.email(),

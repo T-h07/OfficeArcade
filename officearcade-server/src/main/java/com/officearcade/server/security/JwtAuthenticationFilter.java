@@ -1,7 +1,7 @@
 package com.officearcade.server.security;
 
-import com.officearcade.server.identity.DevIdentityService;
-import com.officearcade.server.identity.IdentityUser;
+import com.officearcade.server.users.UserAccount;
+import com.officearcade.server.users.UserAccountService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,11 +19,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final DevIdentityService devIdentityService;
+    private final UserAccountService userAccountService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, DevIdentityService devIdentityService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserAccountService userAccountService) {
         this.jwtService = jwtService;
-        this.devIdentityService = devIdentityService;
+        this.userAccountService = userAccountService;
     }
 
     @Override
@@ -43,13 +43,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         JwtUserClaims claims = parsedClaims.get();
-        Optional<IdentityUser> maybeUser = devIdentityService.findById(claims.userId());
+        Optional<UserAccount> maybeUser = userAccountService.findById(claims.userId());
         if (maybeUser.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        IdentityUser user = maybeUser.get();
+        UserAccount user = maybeUser.get();
         if (!user.enabled()) {
             filterChain.doFilter(request, response);
             return;

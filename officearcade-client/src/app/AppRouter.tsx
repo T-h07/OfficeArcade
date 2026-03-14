@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "../features/auth/RequireAuth";
 import { PublicOnlyRoute } from "../features/auth/PublicOnlyRoute";
 import { RequireRole } from "../features/auth/RequireRole";
+import { AdminUsersPage } from "../features/admin-users/pages/AdminUsersPage";
 import { AppShell } from "../features/layout/AppShell";
 import { AdminOverviewPage } from "../pages/AdminOverviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
@@ -37,6 +38,14 @@ export function AppRouter() {
           element={
             <RequireRole allowedRoles={["ADMIN"]}>
               <AdminOverviewPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <RequireRole allowedRoles={["ADMIN"]}>
+              <AdminUsersPage />
             </RequireRole>
           }
         />
